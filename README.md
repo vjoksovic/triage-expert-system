@@ -1,5 +1,5 @@
 # Sistem za podršku trijažnom odlučivanju u urgentnoj medicini
-### Sistemi bazirani na znanju ~ Predlog projekta
+### Sistemi bazirani na znanju — Predlog projekta
 
 **Autor:** Veljko Joksović `SV56/2022`
 
@@ -15,7 +15,7 @@ Postojeći sistemi (Manchester Triage System, ESI skala) nude strukturirane prot
 
 ## 2. Pregled problema
 
-Trijažni proces se tradicionalno oslanja na subjektivnu procenu vitalnih znakova i simptoma. Prema istraživanjima, pogrešan trijažni prioritet dodeljuje se u 10–30% slučajeva u standardnim hitnim službama.
+Trijažni proces se tradicionalno oslanja na subjektivnu procenu simptoma na osnovu vitalnih znakova. Prema istraživanjima, pogrešan trijažni prioritet dodeljuje se u 10–30% slučajeva u standardnim hitnim službama.
 
 **Nedostaci postojećih rešenja:**
 - Nekonzistentnost: isti pacijent može dobiti različit prioritet od različitih medicinara
@@ -54,8 +54,8 @@ Sistem će se primarno fokusirati na trijažne protokole za infektivna stanja (s
 
 | Izlaz | Vrednosti | Opis |
 |---|---|---|
-| Trijažni prioritet | P1 / P2 / P3 / P4 / P5 | P1=Urgentno, P2=Hitno, P3=Manje hitno, P4=Hronično, P5=Rutinsko |
-| Preporučeno odeljenje | Kardiologija, Interna... | Na osnovu primarnih simptoma i dijagnoze |
+| Trijažni prioritet | P1 / P2 / P3 / P4 / P5 | P1=Pacijent je ugrožen, P2=Stanje se brzo može pogoršati , P3=Može čekati 1 sat, P4=Hronični stabilni pacijent ili ne može ugroziti život, P5=Nije hitan |
+| Preporučeno odeljenje | JIL, Pulmologija, Infektologija, Opšta ambulanta | Na osnovu primarnih simptoma i dijagnoze |
 | Upozorenja | Lista tekstova | Npr. `Rizik od sepse — odmah uzeti hemokulture` |
 | Objašnjenje odluke | Lista aktiviranih pravila | Audit trail zaključivanja |
 | CEP alarmi | Real-time eventi | Npr. pad SpO2 za >5% za 10 minuta |
@@ -69,6 +69,132 @@ Baza znanja sistema sastoji se od tri sloja:
 3. **Sloj trijažnih pravila** — pravila koja kombinuju dijagnostičke zaključke i dodeljuju prioritet i odeljenje
 
 Sistem je fokusiran isključivo na infektivne (sepsa) i respiratorne baze znanja. Sloj vitalnih znakova koristi Drools templejte za definisanje granica normalnih vrednosti (puls, pritisak, temperatura) koje se automatski menjaju na osnovu uzrasta pacijenta (npr. različiti pragovi za decu, odrasle i starije osobe).
+
+---
+
+## 3.4 Pravila sistema
+
+### Ručno uneseno u Working Memory (Input od lekara)
+
+```
+Patient(age, chronicConditions: [DIABETES, COPD])
+Vitals(pulse, systolicBP, spo2, temperature, timestamp)
+Symptom(DISPNEA)    ← lekar čekira
+Symptom(CONFUSION)  ← lekar čekira
+```
+
+---
+
+### Nivo 1 — Template pravila (Single)
+
+Ulaz: `Vitals` + `Patient(category)` | Izlaz: `Symptom`
+
+| Pravilo | Uslov | Ubacuje u WM |
+|---|---|---|
+| Tachycardia | pulse > prag za uzrast | Symptom(TACHYCARDIA) |
+| Hypotension | systolicBP < prag za uzrast | Symptom(HYPOTENSION) |
+| Fever | temperature > prag za uzrast | Symptom(FEVER) |
+| Hypoxemia | spo2 < prag za uzrast | Symptom(HYPOXEMIA) |
+
+Pragovi po kategoriji:
+
+| Simptom | CHILD (<18) | ADULT (18–65) | SENIOR (>65) |
+|---|---|---|---|
+| Tachycardia | pulse > 100 | pulse > 100 | pulse > 90 |
+| Hypotension | systolic < 90 | systolic < 100 | systolic < 110 |
+| Fever | temp > 37.5 | temp > 38.0 | temp > 37.8 |
+| Hypoxemia | spo2 < 95 | spo2 < 94 | spo2 < 92 |
+
+---
+
+### Nivo 2 — Dijagnostička pravila (Double Join)
+
+Ulaz: `Symptom` + `Symptom` | Izlaz: `Diagnosis`
+
+| Pravilo | Uslov (oba moraju biti u WM) | Ubacuje u WM |
+|---|---|---|
+| Respiratory Failure | Symptom(HYPOXEMIA) + Symptom(DISPNEA) | Diagnosis(RESPIRATORY_FAILURE) |
+| Sepsis Preliminary | Symptom(FEVER) + Symptom(TACHYCARDIA) | Diagnosis(SEPSIS_SUSPECTED) |
+
+Ostale kombinacije simptoma nisu dijagnostički zaključci na ovom nivou jer su ili posledice već pokrivenih dijagnoza, ili su van skopa sistema (fokus: sepsa i respiratorno).
+
+---
+
+### Nivo 3 — Trijažna pravila (Triple Join)
+
+Ulaz: `Diagnosis` + `Symptom` + `Patient(category | chronicConditions)` | Izlaz: `Triage`
+
+Svako pravilo sadrži tačno tri činioca. Kod pacijenata bez komorbiditeta, treći činilac je starosna kategorija.
+
+| Pravilo | Činilac 1 | Činilac 2 | Činilac 3 | Prioritet | Odeljenje |
+|---|---|---|---|---|---|
+| Sepsa + Dijabetes | Diagnosis(SEPSIS_SUSPECTED) | Symptom(HYPOTENSION) | Patient(DIABETES) | P1 | JIL |
+| Sepsa + COPD | Diagnosis(SEPSIS_SUSPECTED) | Symptom(HYPOTENSION) | Patient(COPD) | P1 | JIL |
+| Resp. insuf. + Dijabetes | Diagnosis(RESPIRATORY_FAILURE) | Symptom(TACHYCARDIA) | Patient(DIABETES) | P1 | Pulmologija |
+| Resp. insuf. + COPD | Diagnosis(RESPIRATORY_FAILURE) | Symptom(TACHYCARDIA) | Patient(COPD) | P1 | Pulmologija |
+| Sepsa + SENIOR | Diagnosis(SEPSIS_SUSPECTED) | Symptom(HYPOTENSION) | Patient(SENIOR) | P1 | Infektologija |
+| Sepsa + ADULT | Diagnosis(SEPSIS_SUSPECTED) | Symptom(HYPOTENSION) | Patient(ADULT) | P1 | Infektologija |
+| Sepsa + CHILD | Diagnosis(SEPSIS_SUSPECTED) | Symptom(HYPOTENSION) | Patient(CHILD) | P1 | Infektologija |
+| Resp. insuf. + SENIOR | Diagnosis(RESPIRATORY_FAILURE) | Symptom(TACHYCARDIA) | Patient(SENIOR) | P2 | Pulmologija |
+| Resp. insuf. + ADULT | Diagnosis(RESPIRATORY_FAILURE) | Symptom(TACHYCARDIA) | Patient(ADULT) | P2 | Pulmologija |
+| Resp. insuf. + CHILD | Diagnosis(RESPIRATORY_FAILURE) | Symptom(TACHYCARDIA) | Patient(CHILD) | P2 | Pulmologija |
+| Bez dijagnoze | not Diagnosis() | Symptom(bilo koji) | Patient(bilo koji) | P3 | Opšta ambulanta |
+
+---
+
+### CEP — Real-time monitoring
+
+Ulaz: stream `Vitals` kroz vreme | Izlaz: alarm
+
+| Pravilo | Uslov | Rezultat |
+|---|---|---|
+| SpO2 Rapid Drop | spo2 pao za > 5% u poslednjih 10 minuta | ALARM → P1, upozorenje za disajni put |
+
+---
+
+### Accumulate — Agregacija na nivou odeljenja
+
+Ulaz: sve `Triage` u WM | Izlaz: akcija na nivou odeljenja
+
+| Pravilo | Uslov | Rezultat |
+|---|---|---|
+| Overload odeljenja | count(Triage(priority == P1)) > 5 | novi P1 pacijenti → preusmeravanje u sekundarnu ustanovu |
+
+---
+
+### Backward Chaining — Stablo zaključivanja
+
+Lekar postavlja direktno pitanje sistemu: *"Da li ovaj pacijent ima sepsu?"*
+
+Sistem ne prolazi kroz sva pravila već ide **unazad** kroz hijerarhiju zavisnosti i proverava samo ono što mu je potrebno da potvrdi ili opovrgne cilj.
+
+```
+isSepsaSuspected($p)?
+│
+├── hasInfectionRisk($p)
+│   ├── hasFever($p)
+│   │   └── Vitals(temperature > prag za uzrast)
+│   └── hasConfusion($p)
+│       └── Symptom(type: CONFUSION)  ← ručno uneseno
+│
+└── hasHemodynamicInstability($p)
+    ├── hasTachycardia($p)
+    │   └── Vitals(pulse > prag za uzrast)
+    └── hasHypotension($p)
+        └── Vitals(systolicBP < prag za uzrast)
+```
+
+Pravila stabla:
+
+| Query / Subquery | Proverava | Zaključuje |
+|---|---|---|
+| `isSepsaSuspected` | `hasInfectionRisk` AND `hasHemodynamicInstability` | Sepsa suspektna |
+| `hasInfectionRisk` | `hasFever` OR `hasConfusion` | Postoji rizik od infekcije |
+| `hasHemodynamicInstability` | `hasTachycardia` AND `hasHypotension` | Hemodinamska nestabilnost |
+| `hasFever` | Vitals(temperature > prag) | Povišena temperatura |
+| `hasConfusion` | Symptom(CONFUSION) | Prisutna konfuzija |
+| `hasTachycardia` | Vitals(pulse > prag) | Ubrzan puls |
+| `hasHypotension` | Vitals(systolicBP < prag) | Nizak pritisak |
 
 ---
 
@@ -114,13 +240,13 @@ Diagnosis(type: RESPIRATORY_FAILURE)
 *Sepsa:* Pravilo detektuje istovremeno u WM: `Symptom(TACHYCARDIA)`, `Symptom(HYPOTENSION)` i `Condition(DIABETES)`. Sistem zaključuje da postoji visok rizik od sepse:
 ```
 INSERT: Diagnosis(type: SEPSIS_SUSPECTED)
-SET:    Triage(priority: P1, ward: ICU)
+SET:    Triage(priority: P1, ward: JIL)
 WARN:   "Rizik od sepse — hitno uzeti hemokulture i primeniti antibiotike"
 ```
 
 *Respiratorna insuficijencija:* Pravilo detektuje istovremeno `Diagnosis(RESPIRATORY_FAILURE)`, `Symptom(TACHYCARDIA)` i `Condition(DIABETES)`:
 ```
-SET:  Triage(priority: P1, ward: ICU)
+SET:  Triage(priority: P1, ward: Pulmologija)
 WARN: "Respiratorna insuficijencija kod dijabetičara — razmotriti mehaničku ventilaciju"
 ```
 
