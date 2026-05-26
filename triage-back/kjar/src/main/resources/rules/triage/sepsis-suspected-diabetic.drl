@@ -1,0 +1,25 @@
+package rules.triage
+
+import com.ftn.model.ChronicCondition;
+import com.ftn.model.Diagnosis;
+import com.ftn.model.DiagnosisType;
+import com.ftn.model.Patient;
+import com.ftn.model.Priority;
+import com.ftn.model.Symptom;
+import com.ftn.model.SymptomType;
+import com.ftn.model.TriageResult;
+import com.ftn.model.Ward;
+
+rule "Sepsis suspected in diabetic patient"
+when
+    Patient(chronicConditions contains ChronicCondition.DIABETES)
+    exists Symptom(type == SymptomType.FEVER)
+    exists Symptom(type == SymptomType.TACHYCARDIA)
+    not Diagnosis(type == DiagnosisType.SEPSIS_SUSPECTED)
+then
+    insert(new Diagnosis(DiagnosisType.SEPSIS_SUSPECTED,
+        "Combination of fever, tachycardia, and hypotension in a diabetic patient."));
+    TriageResult triageResult = new TriageResult(Priority.P1, Ward.JIL);
+    triageResult.addWarning("Sepsis risk — obtain blood cultures urgently and start antibiotics.");
+    insert(triageResult);
+end

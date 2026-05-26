@@ -1,0 +1,18 @@
+package rules.triage
+
+import com.ftn.model.AgeCategory;
+import com.ftn.model.Patient;
+
+rule "Classify patient by age"
+when
+    $patient : Patient(ageCategory == null, $age : age)
+then
+    if ($age < 18) {
+        $patient.setAgeCategory(AgeCategory.CHILD);
+    } else if ($age <= 65) {
+        $patient.setAgeCategory(AgeCategory.ADULT);
+    } else {
+        $patient.setAgeCategory(AgeCategory.SENIOR);
+    }
+    update($patient);
+end

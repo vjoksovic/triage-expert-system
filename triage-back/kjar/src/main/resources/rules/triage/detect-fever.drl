@@ -1,0 +1,20 @@
+package rules.triage
+
+import com.ftn.model.AgeCategory;
+import com.ftn.model.Patient;
+import com.ftn.model.Symptom;
+import com.ftn.model.SymptomType;
+import com.ftn.model.Vitals;
+
+rule "Detect fever"
+when
+    Patient($category : ageCategory != null)
+    $vitals : Vitals(
+        ($category == AgeCategory.CHILD && temperature > 37.5) ||
+        ($category == AgeCategory.ADULT && temperature > 38.0) ||
+        ($category == AgeCategory.SENIOR && temperature > 37.8)
+    )
+    not Symptom(type == SymptomType.FEVER)
+then
+    insert(new Symptom(SymptomType.FEVER));
+end

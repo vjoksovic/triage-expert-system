@@ -1,0 +1,264 @@
+<div class="app-shell">
+  <header class="top-bar">
+    <div class="brand">
+      <div class="brand-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 2v20M5 9h14M5 15h14"/>
+        </svg>
+      </div>
+      <div>
+        <p class="brand-eyebrow">Urgent Care Center</p>
+        <h1 class="brand-title">Emergency Triage System</h1>
+      </div>
+    </div>
+    <div class="top-bar-meta">
+      <span class="status-pill">
+        <span class="status-dot"></span>
+        Rules active
+      </span>
+      <span class="meta-time">{{ evaluatedAt ? (evaluatedAt | date:'HH:mm:ss') : '—' }}</span>
+    </div>
+  </header>
+
+  <div class="workspace">
+    <section class="panel intake-panel">
+      <div class="panel-header">
+        <h2>Patient intake</h2>
+        <span class="panel-badge">Step 1</span>
+      </div>
+
+      <div class="patient-banner">
+        <div class="avatar">{{ patientInitials }}</div>
+        <div class="patient-banner-fields">
+          <label class="field field-wide">
+            <span>Full name</span>
+            <input [(ngModel)]="model.fullName" placeholder="Enter full name" />
+          </label>
+          <label class="field field-narrow">
+            <span>Age</span>
+            <input type="number" [(ngModel)]="model.age" min="0" max="120" />
+          </label>
+        </div>
+        <div class="age-tag">{{ ageCategory }}</div>
+      </div>
+
+      <div class="section-block">
+        <h3 class="section-title">
+          <span class="section-icon" aria-hidden="true">♥</span>
+          Vital signs
+        </h3>
+        <div class="vitals-grid">
+          <label class="vital-card" [class.abnormal]="isVitalAbnormal('temperature')">
+            <span class="vital-label">Temperature</span>
+            <div class="vital-input-wrap">
+              <input type="number" step="0.1" [(ngModel)]="model.temperature" />
+              <span class="vital-unit">°C</span>
+            </div>
+          </label>
+          <label class="vital-card" [class.abnormal]="isVitalAbnormal('systolic')">
+            <span class="vital-label">Systolic BP</span>
+            <div class="vital-input-wrap">
+              <input type="number" [(ngModel)]="model.systolicBloodPressure" />
+              <span class="vital-unit">mmHg</span>
+            </div>
+          </label>
+          <label class="vital-card" [class.abnormal]="isVitalAbnormal('diastolic')">
+            <span class="vital-label">Diastolic BP</span>
+            <div class="vital-input-wrap">
+              <input type="number" [(ngModel)]="model.diastolicBloodPressure" />
+              <span class="vital-unit">mmHg</span>
+            </div>
+          </label>
+          <label class="vital-card" [class.abnormal]="isVitalAbnormal('pulse')">
+            <span class="vital-label">Pulse</span>
+            <div class="vital-input-wrap">
+              <input type="number" [(ngModel)]="model.pulse" />
+              <span class="vital-unit">/min</span>
+            </div>
+          </label>
+          <label class="vital-card vital-wide" [class.abnormal]="isVitalAbnormal('spo2')">
+            <span class="vital-label">Oxygen saturation (SpO₂)</span>
+            <div class="vital-input-wrap">
+              <input type="number" [(ngModel)]="model.spo2" min="0" max="100" />
+              <span class="vital-unit">%</span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <div class="section-block">
+        <h3 class="section-title">
+          <span class="section-icon" aria-hidden="true">+</span>
+          Chronic conditions
+        </h3>
+        <div class="option-grid">
+          @for (condition of chronicOptions; track condition.value) {
+            <button type="button"
+                    class="option-tile"
+                    [class.selected]="model.chronicConditions.includes(condition.value)"
+                    (click)="toggleSelection(model.chronicConditions, condition.value)">
+              <span class="option-check">{{ model.chronicConditions.includes(condition.value) ? '✓' : '' }}</span>
+              {{ condition.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="section-block">
+        <h3 class="section-title">
+          <span class="section-icon" aria-hidden="true">!</span>
+          Reported symptoms
+        </h3>
+        <div class="option-grid">
+          @for (symptom of symptomOptions; track symptom.value) {
+            <button type="button"
+                    class="option-tile"
+                    [class.selected]="model.symptoms.includes(symptom.value)"
+                    (click)="toggleSelection(model.symptoms, symptom.value)">
+              <span class="option-check">{{ model.symptoms.includes(symptom.value) ? '✓' : '' }}</span>
+              {{ symptom.label }}
+            </button>
+          }
+        </div>
+      </div>
+
+      <div class="action-row">
+        <button class="evaluate-btn" (click)="evaluate()" [disabled]="loading">
+          @if (loading) {
+            <span class="spinner" aria-hidden="true"></span>
+            Running rules...
+          } @else {
+            Run triage
+          }
+        </button>
+      </div>
+
+      @if (error) {
+        <div class="alert alert-error" role="alert">
+          <strong>Connection error</strong>
+          <p>{{ error }}</p>
+        </div>
+      }
+    </section>
+
+    <section class="panel result-panel" [class.has-result]="result">
+      <div class="panel-header">
+        <h2>Triage result</h2>
+        <span class="panel-badge">Step 2</span>
+      </div>
+
+      @if (!result && !loading) {
+        <div class="empty-state">
+          <div class="empty-icon" aria-hidden="true">
+            <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="8" y="12" width="48" height="40" rx="4"/>
+              <path d="M20 28h24M20 36h16M20 44h20"/>
+            </svg>
+          </div>
+          <h3>Awaiting evaluation</h3>
+          <p>Enter patient details and run triage to get priority, ward assignment, and activated rules.</p>
+        </div>
+      }
+
+      @if (loading) {
+        <div class="loading-state">
+          <span class="spinner spinner-lg" aria-hidden="true"></span>
+          <p>Analyzing vital signs and rules...</p>
+        </div>
+      }
+
+      @if (result) {
+        @let priority = priorityMeta(result.priority);
+
+        <div class="priority-hero" [ngClass]="priority.cssClass">
+          <div class="priority-code">{{ result.priority || '—' }}</div>
+          <div class="priority-text">
+            <h3>{{ priority.label }}</h3>
+            <p>{{ priority.description }}</p>
+          </div>
+        </div>
+
+        <div class="result-cards">
+          <article class="result-card">
+            <span class="result-card-label">Routing</span>
+            <strong class="result-card-value">{{ wardLabel(result.ward) }}</strong>
+          </article>
+          <article class="result-card">
+            <span class="result-card-label">Rules fired</span>
+            <strong class="result-card-value">{{ result.firedRules }}</strong>
+          </article>
+        </div>
+
+        @if (result.warnings.length) {
+          <div class="alert alert-warning" role="alert">
+            <strong>Warnings</strong>
+            <ul class="tag-list warning-list">
+              @for (warning of result.warnings; track warning) {
+                <li>{{ warning }}</li>
+              }
+            </ul>
+          </div>
+        }
+
+        <div class="result-sections">
+          <div class="result-block">
+            <h4>Activated rules</h4>
+            @if (result.activatedRules.length) {
+              <ul class="rule-list">
+                @for (rule of result.activatedRules; track rule) {
+                  <li>
+                    <span class="rule-dot"></span>
+                    {{ rule }}
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="muted">No rules were activated.</p>
+            }
+          </div>
+
+          <div class="result-block">
+            <h4>Detected symptoms</h4>
+            @if (result.symptoms.length) {
+              <div class="tag-list">
+                @for (symptom of result.symptoms; track symptom) {
+                  <span class="tag tag-symptom">{{ formatEnum(symptom) }}</span>
+                }
+              </div>
+            } @else {
+              <p class="muted">No symptoms detected.</p>
+            }
+          </div>
+
+          <div class="result-block">
+            <h4>Diagnoses</h4>
+            @if (result.diagnoses.length) {
+              <div class="tag-list">
+                @for (diagnosis of result.diagnoses; track diagnosis) {
+                  <span class="tag tag-diagnosis">{{ formatEnum(diagnosis) }}</span>
+                }
+              </div>
+            } @else {
+              <p class="muted">No diagnoses assigned.</p>
+            }
+          </div>
+        </div>
+
+        <div class="intake-summary">
+          <h4>Intake summary</h4>
+          <dl class="summary-grid">
+            <div><dt>Patient</dt><dd>{{ model.fullName }}</dd></div>
+            <div><dt>Age</dt><dd>{{ model.age }}</dd></div>
+            <div><dt>Chronic conditions</dt><dd>{{ selectedChronicLabels() }}</dd></div>
+            <div><dt>Symptoms</dt><dd>{{ selectedSymptomLabels() }}</dd></div>
+          </dl>
+        </div>
+      }
+    </section>
+  </div>
+
+  <footer class="app-footer">
+    <span>Drools rules · Backend :8090</span>
+    <span>MTS-inspired priorities P1–P5</span>
+  </footer>
+</div>

@@ -1,0 +1,20 @@
+package rules.triage
+
+import com.ftn.model.AgeCategory;
+import com.ftn.model.Patient;
+import com.ftn.model.Symptom;
+import com.ftn.model.SymptomType;
+import com.ftn.model.Vitals;
+
+rule "Detect tachycardia"
+when
+    Patient($category : ageCategory != null)
+    $vitals : Vitals(
+        ($category == AgeCategory.CHILD && pulse > 100) ||
+        ($category == AgeCategory.ADULT && pulse > 100) ||
+        ($category == AgeCategory.SENIOR && pulse > 90)
+    )
+    not Symptom(type == SymptomType.TACHYCARDIA)
+then
+    insert(new Symptom(SymptomType.TACHYCARDIA));
+end
