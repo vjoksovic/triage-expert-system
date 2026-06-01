@@ -4,21 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TriageResponseDto {
-    private int firedRules;
     private List<String> activatedRules = new ArrayList<>();
     private List<String> symptoms = new ArrayList<>();
     private List<String> diagnoses = new ArrayList<>();
     private String priority;
     private String ward;
     private List<String> warnings = new ArrayList<>();
-
-    public int getFiredRules() {
-        return firedRules;
-    }
-
-    public void setFiredRules(int firedRules) {
-        this.firedRules = firedRules;
-    }
 
     public List<String> getActivatedRules() {
         return activatedRules;

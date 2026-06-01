@@ -2,8 +2,15 @@ package com.ftn.model;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Objects;
 
+import org.kie.api.definition.type.Role;
+import org.kie.api.definition.type.Role.Type;
+import org.kie.api.definition.type.Timestamp;
+
+@Role(Type.EVENT)
+@Timestamp("measuredAtEpochMillis")
 public class Vitals implements Serializable {
     private static final long serialVersionUID = 1L;
 
@@ -13,6 +20,7 @@ public class Vitals implements Serializable {
     private int pulse;
     private int spo2;
     private LocalDateTime measuredAt;
+    private long measuredAtEpochMillis;
 
     public Vitals() {
     }
@@ -24,7 +32,7 @@ public class Vitals implements Serializable {
         this.diastolicBloodPressure = diastolicBloodPressure;
         this.pulse = pulse;
         this.spo2 = spo2;
-        this.measuredAt = measuredAt;
+        setMeasuredAt(measuredAt);
     }
 
     public double getTemperature() {
@@ -73,11 +81,28 @@ public class Vitals implements Serializable {
 
     public void setMeasuredAt(LocalDateTime measuredAt) {
         this.measuredAt = measuredAt;
+        this.measuredAtEpochMillis = toEpochMillis(measuredAt);
+    }
+
+    public long getMeasuredAtEpochMillis() {
+        return measuredAtEpochMillis;
+    }
+
+    public void setMeasuredAtEpochMillis(long measuredAtEpochMillis) {
+        this.measuredAtEpochMillis = measuredAtEpochMillis;
+    }
+
+    private static long toEpochMillis(LocalDateTime measuredAt) {
+        if (measuredAt == null) {
+            return System.currentTimeMillis();
+        }
+        return measuredAt.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli();
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(diastolicBloodPressure, measuredAt, pulse, spo2, systolicBloodPressure, temperature);
+        return Objects.hash(diastolicBloodPressure, measuredAt, measuredAtEpochMillis, pulse, spo2,
+                systolicBloodPressure, temperature);
     }
 
     @Override
@@ -94,6 +119,7 @@ public class Vitals implements Serializable {
                 && diastolicBloodPressure == other.diastolicBloodPressure
                 && pulse == other.pulse
                 && spo2 == other.spo2
+                && measuredAtEpochMillis == other.measuredAtEpochMillis
                 && Objects.equals(measuredAt, other.measuredAt);
     }
 

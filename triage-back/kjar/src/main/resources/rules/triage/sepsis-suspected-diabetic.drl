@@ -19,7 +19,5 @@ when
 then
     insert(new Diagnosis(DiagnosisType.SEPSIS_SUSPECTED,
         "Combination of fever, tachycardia, and hypotension in a diabetic patient."));
-    TriageResult triageResult = new TriageResult(Priority.P1, Ward.JIL);
-    triageResult.addWarning("Sepsis risk — obtain blood cultures urgently and start antibiotics.");
-    insert(triageResult);
+    insert(new TriageResult(Priority.P1, Ward.JIL));
 end

@@ -1,264 +1,268 @@
-<div class="app-shell">
-  <header class="top-bar">
-    <div class="brand">
-      <div class="brand-icon" aria-hidden="true">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 2v20M5 9h14M5 15h14"/>
+<div class="app">
+  <header class="header">
+    <div class="header__left">
+      <div class="header__logo" aria-hidden="true">
+        <svg viewBox="0 0 32 32" fill="none">
+          <rect width="32" height="32" rx="8" fill="#7dd3e8"/>
+          <path d="M16 8v16M10 13h12M10 19h12" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
         </svg>
       </div>
-      <div>
-        <p class="brand-eyebrow">Urgent Care Center</p>
-        <h1 class="brand-title">Emergency Triage System</h1>
-      </div>
+      <h1 class="header__title">TriageOS</h1>
     </div>
-    <div class="top-bar-meta">
-      <span class="status-pill">
-        <span class="status-dot"></span>
-        Rules active
-      </span>
-      <span class="meta-time">{{ evaluatedAt ? (evaluatedAt | date:'HH:mm:ss') : '—' }}</span>
-    </div>
+
   </header>
 
-  <div class="workspace">
-    <section class="panel intake-panel">
-      <div class="panel-header">
-        <h2>Patient intake</h2>
-        <span class="panel-badge">Step 1</span>
-      </div>
+  @if (error || cepError) {
+    <div class="alerts">
+      @if (error) {
+        <div class="toast toast--error" role="alert">{{ error }}</div>
+      }
+      @if (cepError) {
+        <div class="toast toast--error" role="alert">{{ cepError }}</div>
+      }
+    </div>
+  }
 
-      <div class="patient-banner">
-        <div class="avatar">{{ patientInitials }}</div>
-        <div class="patient-banner-fields">
-          <label class="field field-wide">
-            <span>Full name</span>
-            <input [(ngModel)]="model.fullName" placeholder="Enter full name" />
+  <main class="dashboard" [class.dashboard--balanced]="result !== null">
+    <div class="dashboard__intake">
+      <section class="panel panel--patient">
+        <h2 class="panel__title">Patient</h2>
+        <div class="panel__content field-row field-row--patient">
+          <label class="input-field input-field--name" for="patient-name">
+            <span class="input-field__label">Name</span>
+            <input
+              id="patient-name"
+              [(ngModel)]="model.fullName"
+              name="patientName"
+              autocomplete="name"
+            />
           </label>
-          <label class="field field-narrow">
-            <span>Age</span>
-            <input type="number" [(ngModel)]="model.age" min="0" max="120" />
+          <label class="input-field input-field--age" for="patient-age">
+            <span class="input-field__label">Age</span>
+            <input
+              id="patient-age"
+              type="number"
+              [(ngModel)]="model.age"
+              name="patientAge"
+              min="0"
+              max="120"
+            />
           </label>
         </div>
-        <div class="age-tag">{{ ageCategory }}</div>
-      </div>
+      </section>
 
-      <div class="section-block">
-        <h3 class="section-title">
-          <span class="section-icon" aria-hidden="true">♥</span>
-          Vital signs
-        </h3>
+      <section class="panel panel--vitals">
+        <h2 class="panel__title">Vital signs</h2>
+        <div class="panel__content">
         <div class="vitals-grid">
-          <label class="vital-card" [class.abnormal]="isVitalAbnormal('temperature')">
-            <span class="vital-label">Temperature</span>
-            <div class="vital-input-wrap">
+          <label class="vital-cell">
+            <span>Temperature</span>
+            <div class="vital-cell__value">
               <input type="number" step="0.1" [(ngModel)]="model.temperature" />
-              <span class="vital-unit">°C</span>
+              <em>°C</em>
             </div>
           </label>
-          <label class="vital-card" [class.abnormal]="isVitalAbnormal('systolic')">
-            <span class="vital-label">Systolic BP</span>
-            <div class="vital-input-wrap">
+          <label class="vital-cell">
+            <span>Systolic BP</span>
+            <div class="vital-cell__value">
               <input type="number" [(ngModel)]="model.systolicBloodPressure" />
-              <span class="vital-unit">mmHg</span>
+              <em>mmHg</em>
             </div>
           </label>
-          <label class="vital-card" [class.abnormal]="isVitalAbnormal('diastolic')">
-            <span class="vital-label">Diastolic BP</span>
-            <div class="vital-input-wrap">
+          <label class="vital-cell">
+            <span>Diastolic BP</span>
+            <div class="vital-cell__value">
               <input type="number" [(ngModel)]="model.diastolicBloodPressure" />
-              <span class="vital-unit">mmHg</span>
+              <em>mmHg</em>
             </div>
           </label>
-          <label class="vital-card" [class.abnormal]="isVitalAbnormal('pulse')">
-            <span class="vital-label">Pulse</span>
-            <div class="vital-input-wrap">
+          <label class="vital-cell">
+            <span>Pulse</span>
+            <div class="vital-cell__value">
               <input type="number" [(ngModel)]="model.pulse" />
-              <span class="vital-unit">/min</span>
+              <em>/min</em>
             </div>
           </label>
-          <label class="vital-card vital-wide" [class.abnormal]="isVitalAbnormal('spo2')">
-            <span class="vital-label">Oxygen saturation (SpO₂)</span>
-            <div class="vital-input-wrap">
+          <label class="vital-cell vital-cell--wide">
+            <span>SpO₂</span>
+            <div class="vital-cell__value">
               <input type="number" [(ngModel)]="model.spo2" min="0" max="100" />
-              <span class="vital-unit">%</span>
+              <em>%</em>
             </div>
           </label>
         </div>
-      </div>
-
-      <div class="section-block">
-        <h3 class="section-title">
-          <span class="section-icon" aria-hidden="true">+</span>
-          Chronic conditions
-        </h3>
-        <div class="option-grid">
-          @for (condition of chronicOptions; track condition.value) {
-            <button type="button"
-                    class="option-tile"
-                    [class.selected]="model.chronicConditions.includes(condition.value)"
-                    (click)="toggleSelection(model.chronicConditions, condition.value)">
-              <span class="option-check">{{ model.chronicConditions.includes(condition.value) ? '✓' : '' }}</span>
-              {{ condition.label }}
-            </button>
-          }
         </div>
-      </div>
+      </section>
 
-      <div class="section-block">
-        <h3 class="section-title">
-          <span class="section-icon" aria-hidden="true">!</span>
-          Reported symptoms
-        </h3>
-        <div class="option-grid">
-          @for (symptom of symptomOptions; track symptom.value) {
-            <button type="button"
-                    class="option-tile"
-                    [class.selected]="model.symptoms.includes(symptom.value)"
-                    (click)="toggleSelection(model.symptoms, symptom.value)">
-              <span class="option-check">{{ model.symptoms.includes(symptom.value) ? '✓' : '' }}</span>
-              {{ symptom.label }}
-            </button>
-          }
+      <section class="panel panel--clinical">
+        <h2 class="panel__title">Clinical context</h2>
+        <div class="panel__content field-row">
+          <div class="field">
+            <span class="field__label">Chronic</span>
+            <div class="toggle-row">
+              @for (condition of chronicOptions; track condition.value) {
+                <button
+                  type="button"
+                  class="toggle"
+                  [class.toggle--on]="model.chronicConditions.includes(condition.value)"
+                  (click)="toggleSelection(model.chronicConditions, condition.value)">
+                  {{ condition.label }}
+                </button>
+              }
+            </div>
+          </div>
+          <div class="field">
+            <span class="field__label">Symptoms</span>
+            <div class="toggle-row">
+              @for (symptom of symptomOptions; track symptom.value) {
+                <button
+                  type="button"
+                  class="toggle"
+                  [class.toggle--on]="model.symptoms.includes(symptom.value)"
+                  (click)="toggleSelection(model.symptoms, symptom.value)">
+                  {{ symptom.label }}
+                </button>
+              }
+            </div>
+          </div>
         </div>
-      </div>
+      </section>
 
-      <div class="action-row">
-        <button class="evaluate-btn" (click)="evaluate()" [disabled]="loading">
-          @if (loading) {
-            <span class="spinner" aria-hidden="true"></span>
-            Running rules...
-          } @else {
-            Run triage
-          }
+      <div class="triage-action">
+        <button type="button" class="btn btn--primary btn--block" (click)="evaluate()" [disabled]="loading">
+          @if (loading) { <span class="spinner"></span> }
+          Run triage
         </button>
       </div>
+    </div>
 
-      @if (error) {
-        <div class="alert alert-error" role="alert">
-          <strong>Connection error</strong>
-          <p>{{ error }}</p>
-        </div>
-      }
-    </section>
-
-    <section class="panel result-panel" [class.has-result]="result">
-      <div class="panel-header">
-        <h2>Triage result</h2>
-        <span class="panel-badge">Step 2</span>
-      </div>
-
-      @if (!result && !loading) {
-        <div class="empty-state">
-          <div class="empty-icon" aria-hidden="true">
-            <svg viewBox="0 0 64 64" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="8" y="12" width="48" height="40" rx="4"/>
-              <path d="M20 28h24M20 36h16M20 44h20"/>
-            </svg>
-          </div>
-          <h3>Awaiting evaluation</h3>
-          <p>Enter patient details and run triage to get priority, ward assignment, and activated rules.</p>
-        </div>
-      }
-
-      @if (loading) {
-        <div class="loading-state">
-          <span class="spinner spinner-lg" aria-hidden="true"></span>
-          <p>Analyzing vital signs and rules...</p>
-        </div>
-      }
-
-      @if (result) {
-        @let priority = priorityMeta(result.priority);
-
-        <div class="priority-hero" [ngClass]="priority.cssClass">
-          <div class="priority-code">{{ result.priority || '—' }}</div>
-          <div class="priority-text">
-            <h3>{{ priority.label }}</h3>
-            <p>{{ priority.description }}</p>
-          </div>
+    <div class="dashboard__results">
+      <section class="panel panel--result panel--triage-outcome">
+        <div class="result-pane__head">
+          <h2 class="panel__title">Triage outcome</h2>
+          @if (evaluatedAt) {
+            <time class="result-pane__time">{{ evaluatedAt | date:'HH:mm:ss' }}</time>
+          }
         </div>
 
-        <div class="result-cards">
-          <article class="result-card">
-            <span class="result-card-label">Routing</span>
-            <strong class="result-card-value">{{ wardLabel(result.ward) }}</strong>
-          </article>
-          <article class="result-card">
-            <span class="result-card-label">Rules fired</span>
-            <strong class="result-card-value">{{ result.firedRules }}</strong>
-          </article>
-        </div>
-
-        @if (result.warnings.length) {
-          <div class="alert alert-warning" role="alert">
-            <strong>Warnings</strong>
-            <ul class="tag-list warning-list">
-              @for (warning of result.warnings; track warning) {
-                <li>{{ warning }}</li>
-              }
-            </ul>
-          </div>
-        }
-
-        <div class="result-sections">
-          <div class="result-block">
-            <h4>Activated rules</h4>
-            @if (result.activatedRules.length) {
-              <ul class="rule-list">
-                @for (rule of result.activatedRules; track rule) {
-                  <li>
-                    <span class="rule-dot"></span>
-                    {{ rule }}
-                  </li>
+        <div class="result-pane__body">
+          @if (loading) {
+            <div class="result-empty">
+              <span class="spinner spinner--lg"></span>
+              <p>Evaluating clinical rules…</p>
+            </div>
+          } @else if (!result) {
+            <div class="result-empty">
+              <p>Run triage to see priority, ward routing, and activated rules.</p>
+            </div>
+          } @else {
+            @let priority = priorityMeta(result.priority);
+            <div class="priority-block" [ngClass]="priority.cssClass">
+              <span class="priority-block__code">{{ result.priority }}</span>
+              <div class="priority-block__info">
+                <h3>{{ priority.label }}</h3>
+                <p>{{ priority.description }}</p>
+              </div>
+            </div>
+            <div class="stat stat--full">
+              <span>Ward</span>
+              <strong>{{ wardLabel(result.ward) }}</strong>
+            </div>
+            @if (result.warnings.length) {
+              <div class="warn-box">
+                @for (warning of result.warnings; track warning) {
+                  <p>{{ warning }}</p>
+                }
+              </div>
+            }
+            <div class="detail-section detail-section--reasoning">
+              <h4>Clinical reasoning</h4>
+              <ul class="detail-list">
+                @for (insight of result.activatedRules; track insight) {
+                  <li>{{ insight }}</li>
+                } @empty {
+                  <li class="detail-list__empty">No rules matched</li>
                 }
               </ul>
-            } @else {
-              <p class="muted">No rules were activated.</p>
-            }
-          </div>
-
-          <div class="result-block">
-            <h4>Detected symptoms</h4>
-            @if (result.symptoms.length) {
-              <div class="tag-list">
+            </div>
+            <div class="detail-section detail-section--tags">
+              <h4>Symptoms & diagnoses</h4>
+              <div class="tag-row">
                 @for (symptom of result.symptoms; track symptom) {
-                  <span class="tag tag-symptom">{{ formatEnum(symptom) }}</span>
+                  <span class="tag tag--amber">{{ formatEnum(symptom) }}</span>
                 }
-              </div>
-            } @else {
-              <p class="muted">No symptoms detected.</p>
-            }
-          </div>
-
-          <div class="result-block">
-            <h4>Diagnoses</h4>
-            @if (result.diagnoses.length) {
-              <div class="tag-list">
                 @for (diagnosis of result.diagnoses; track diagnosis) {
-                  <span class="tag tag-diagnosis">{{ formatEnum(diagnosis) }}</span>
+                  <span class="tag tag--violet">{{ formatEnum(diagnosis) }}</span>
+                }
+                @if (!result.symptoms.length && !result.diagnoses.length) {
+                  <span class="detail-list__empty">None detected</span>
                 }
               </div>
-            } @else {
-              <p class="muted">No diagnoses assigned.</p>
+            </div>
+          }
+        </div>
+      </section>
+
+      <section class="panel panel--result panel--cep-outcome" [class.panel--alarm]="cepHasAlarm">
+        <div class="result-pane__head">
+          <h2 class="panel__title">CEP monitoring</h2>
+        </div>
+
+        <div class="result-pane__body cep-pane">
+          @if (cepLoading) {
+            <div class="cep-pane__status cep-pane__status--loading">
+              <span class="spinner"></span>
+              <span>Processing SpO₂ stream…</span>
+            </div>
+          } @else if (!cepResult) {
+            <p class="cep-pane__status cep-pane__status--idle">CEP updates when you run triage.</p>
+          } @else if (cepHasAlarm) {
+            @let alarm = cepResult.alarms[0];
+            <div class="cep-pane__status cep-pane__status--alarm">
+              <span class="cep-pane__badge">{{ alarm.priority }}</span>
+              <div class="cep-pane__text">
+                <strong>{{ alarm.ruleName }}</strong>
+                <span>{{ alarm.message }}</span>
+              </div>
+            </div>
+          } @else {
+            <div class="cep-pane__status cep-pane__status--ok">
+              <strong>Stream stable</strong>
+              <span>No rapid SpO₂ drop in the 10-minute window.</span>
+            </div>
+          }
+          @if (cepResult; as cep) {
+            @if (cep.activatedRules.length) {
+              <ul class="cep-pane__checks">
+                @for (insight of cep.activatedRules; track insight) {
+                  <li>{{ insight }}</li>
+                }
+              </ul>
             }
-          </div>
+          }
         </div>
+      </section>
 
-        <div class="intake-summary">
-          <h4>Intake summary</h4>
-          <dl class="summary-grid">
-            <div><dt>Patient</dt><dd>{{ model.fullName }}</dd></div>
-            <div><dt>Age</dt><dd>{{ model.age }}</dd></div>
-            <div><dt>Chronic conditions</dt><dd>{{ selectedChronicLabels() }}</dd></div>
-            <div><dt>Symptoms</dt><dd>{{ selectedSymptomLabels() }}</dd></div>
-          </dl>
+      <section class="panel panel--spo2-trend">
+        <h2 class="panel__title">SpO₂ trend (CEP)</h2>
+        <div class="panel__content spo2-trend">
+          @if (!triageHistory.length) {
+            <p class="cep-empty spo2-trend__empty">SpO₂ readings appear here after each triage.</p>
+          } @else {
+            <div class="spo2-trend__scroll" role="region" aria-label="SpO₂ reading history">
+              <div class="readings-table readings-table--history">
+                <div class="readings-table__head"><span>Time</span><span>SpO₂</span></div>
+                @for (entry of triageHistory; track entry.measuredAt.getTime()) {
+                  <div class="readings-table__row">
+                    <span class="readings-table__time">{{ entry.measuredAt | date:'HH:mm:ss' }}</span>
+                    <span class="readings-table__spo2">{{ entry.spo2 }}%</span>
+                  </div>
+                }
+              </div>
+            </div>
+          }
         </div>
-      }
-    </section>
-  </div>
-
-  <footer class="app-footer">
-    <span>Drools rules · Backend :8090</span>
-    <span>MTS-inspired priorities P1–P5</span>
-  </footer>
+      </section>
+    </div>
+  </main>
 </div>

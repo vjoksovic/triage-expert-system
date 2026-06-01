@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { TriageRequest, TriageResponse } from './triage.types';
+import { CepMonitorRequest, CepMonitorResponse, TriageRequest, TriageResponse } from './triage.types';
 
 @Injectable({ providedIn: 'root' })
 export class TriageApiService {
@@ -11,5 +11,9 @@ export class TriageApiService {
 
   evaluate(request: TriageRequest): Observable<TriageResponse> {
     return this.http.post<TriageResponse>(`${this.baseUrl}/evaluate`, request);
+  }
+
+  monitorCep(request: CepMonitorRequest): Observable<CepMonitorResponse> {
+    return this.http.post<CepMonitorResponse>(`${this.baseUrl}/cep/monitor`, request);
   }
 }

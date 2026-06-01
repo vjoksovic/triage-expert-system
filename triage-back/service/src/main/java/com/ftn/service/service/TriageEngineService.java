@@ -20,6 +20,7 @@ import com.ftn.model.TriageResult;
 import com.ftn.model.Vitals;
 import com.ftn.service.dto.TriageRequestDto;
 import com.ftn.service.dto.TriageResponseDto;
+import com.ftn.service.engine.RuleInsightFormatter;
 import com.ftn.service.engine.RuleTraceAgendaEventListener;
 
 @Service
@@ -54,11 +55,11 @@ public class TriageEngineService {
             mapSymptoms(request.getSymptoms())
                     .forEach(session::insert);
 
-            int firedRuleCount = session.fireAllRules();
+            session.fireAllRules();
 
             TriageResponseDto response = new TriageResponseDto();
-            response.setFiredRules(firedRuleCount);
-            response.setActivatedRules(listener.getFiredRules());
+            response.setActivatedRules(RuleInsightFormatter.toInsights(
+                    listener.getFiredRules(), patient, vitals));
 
             response.setSymptoms(session.getObjects(o -> o instanceof Symptom).stream()
                     .map(Symptom.class::cast)

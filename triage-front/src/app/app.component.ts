@@ -3,7 +3,13 @@ import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { TriageApiService } from './triage-api.service';
-import { TriageRequest, TriageResponse } from './triage.types';
+import {
+  CepMonitorResponse,
+  TriagedVitalsSnapshot,
+  TriageRequest,
+  TriageResponse,
+  VitalsReading
+} from './triage.types';
 
 type PriorityLevel = 'P1' | 'P2' | 'P3' | 'P4' | 'P5';
 
@@ -36,10 +42,17 @@ export class AppComponent {
     { value: 'CONFUSION', label: 'Confusion' }
   ];
 
+  triageHistory: TriagedVitalsSnapshot[] = [];
+
   loading = false;
   error = '';
   result: TriageResponse | null = null;
   evaluatedAt: Date | null = null;
+
+  cepLoading = false;
+  cepError = '';
+  cepResult: CepMonitorResponse | null = null;
+  cepMonitoredAt: Date | null = null;
 
   constructor(private readonly triageApiService: TriageApiService) {}
 
@@ -50,6 +63,31 @@ export class AppComponent {
       return;
     }
     values.push(option);
+  }
+
+  private runCepMonitoring(): void {
+    if (!this.triageHistory.length) {
+      return;
+    }
+
+    this.cepLoading = true;
+    this.cepError = '';
+    this.cepResult = null;
+    this.cepMonitoredAt = null;
+
+    this.triageApiService.monitorCep({ vitalsReadings: this.buildVitalsReadings() })
+      .pipe(finalize(() => {
+        this.cepLoading = false;
+      }))
+      .subscribe({
+        next: (response) => {
+          this.cepResult = response;
+          this.cepMonitoredAt = new Date();
+        },
+        error: () => {
+          this.cepError = 'CEP monitoring failed. Ensure the backend is running on port 8090.';
+        }
+      });
   }
 
   evaluate(): void {
@@ -66,49 +104,13 @@ export class AppComponent {
         next: (response) => {
           this.result = response;
           this.evaluatedAt = new Date();
+          this.recordTriagedVitals(this.evaluatedAt);
+          this.runCepMonitoring();
         },
         error: () => {
           this.error = 'Failed to reach the backend. Ensure the server is running on port 8090.';
         }
       });
-  }
-
-  get patientInitials(): string {
-    const parts = this.model.fullName.trim().split(/\s+/).filter(Boolean);
-    if (parts.length === 0) {
-      return '?';
-    }
-    if (parts.length === 1) {
-      return parts[0].slice(0, 2).toUpperCase();
-    }
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-  }
-
-  get ageCategory(): string {
-    if (this.model.age < 18) {
-      return 'Pediatric';
-    }
-    if (this.model.age >= 65) {
-      return 'Geriatric';
-    }
-    return 'Adult';
-  }
-
-  isVitalAbnormal(metric: 'temperature' | 'systolic' | 'diastolic' | 'pulse' | 'spo2'): boolean {
-    switch (metric) {
-      case 'temperature':
-        return this.model.temperature >= 38 || this.model.temperature < 36;
-      case 'systolic':
-        return this.model.systolicBloodPressure < 90 || this.model.systolicBloodPressure > 180;
-      case 'diastolic':
-        return this.model.diastolicBloodPressure < 60 || this.model.diastolicBloodPressure > 110;
-      case 'pulse':
-        return this.model.pulse > 100 || this.model.pulse < 60;
-      case 'spo2':
-        return this.model.spo2 < 94;
-      default:
-        return false;
-    }
   }
 
   priorityMeta(priority: string | null | undefined): {
@@ -162,6 +164,47 @@ export class AppComponent {
     return this.model.chronicConditions
       .map((c) => this.optionLabel(this.chronicOptions, c))
       .join(', ');
+  }
+
+  get cepHasAlarm(): boolean {
+    return (this.cepResult?.alarms.length ?? 0) > 0;
+  }
+
+  get hasTriageResult(): boolean {
+    return this.result !== null;
+  }
+
+  get hasCepResult(): boolean {
+    return this.cepResult !== null;
+  }
+
+  buildVitalsReadings(): VitalsReading[] {
+    return [...this.triageHistory]
+      .sort((a, b) => a.measuredAt.getTime() - b.measuredAt.getTime())
+      .map((snapshot) => ({
+        temperature: snapshot.temperature,
+        systolicBloodPressure: snapshot.systolicBloodPressure,
+        diastolicBloodPressure: snapshot.diastolicBloodPressure,
+        pulse: snapshot.pulse,
+        spo2: snapshot.spo2,
+        measuredAt: this.toLocalDateTimeString(snapshot.measuredAt)
+      }));
+  }
+
+  private recordTriagedVitals(measuredAt: Date): void {
+    this.triageHistory.push({
+      measuredAt,
+      temperature: this.model.temperature,
+      systolicBloodPressure: this.model.systolicBloodPressure,
+      diastolicBloodPressure: this.model.diastolicBloodPressure,
+      pulse: this.model.pulse,
+      spo2: this.model.spo2
+    });
+  }
+
+  private toLocalDateTimeString(date: Date): string {
+    const pad = (value: number) => String(value).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
   }
 
   selectedSymptomLabels(): string {
