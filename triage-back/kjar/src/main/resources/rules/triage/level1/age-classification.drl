@@ -1,9 +1,10 @@
-package rules.triage
+package rules.triage.level1
 
 import com.ftn.model.AgeCategory;
 import com.ftn.model.Patient;
 
 rule "Classify patient by age"
+    salience 1000
 when
     $patient : Patient(ageCategory == null, $age : age)
 then

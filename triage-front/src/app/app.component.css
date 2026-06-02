@@ -9,8 +9,8 @@
   display: flex;
   flex-direction: column;
   overflow: visible;
-  padding: 12px 16px 16px;
-  gap: 12px;
+  padding: 24px 32px 32px;
+  gap: 20px;
 }
 
 /* Header */
@@ -18,7 +18,7 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  padding-bottom: 12px;
+  padding-bottom: 16px;
   border-bottom: 1px solid var(--border);
 }
 
@@ -37,80 +37,105 @@
   font-size: 1.2rem;
   font-weight: 600;
   color: var(--text);
+  letter-spacing: -0.01em;
 }
 
-.input-field {
+.patient-tabs {
+  flex-shrink: 0;
   display: flex;
-  flex-direction: column;
-  justify-content: center;
-  gap: 2px;
-  height: 40px;
-  padding: 5px 12px 6px;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.patient-tabs__list {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 1;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.patient-tabs__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 220px;
+  padding: 8px 12px;
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
-  background: var(--input-bg);
-  cursor: text;
-  min-width: 0;
-}
-
-.input-field:focus-within {
-  outline: 2px solid var(--primary-border);
-  outline-offset: 0;
-  border-color: var(--primary);
-}
-
-.input-field__label {
-  font-size: 10px;
+  background: var(--surface-muted);
+  color: var(--text-secondary);
+  font-size: 13px;
   font-weight: 500;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.patient-tabs__tab:hover {
+  border-color: var(--primary-border);
+  color: var(--text);
+}
+
+.patient-tabs__tab--active {
+  background: var(--surface);
+  border-color: var(--primary-border);
+  color: var(--text);
+  box-shadow: 0 0 0 1px var(--primary-soft);
+}
+
+.patient-tabs__label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.patient-tabs__priority {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.patient-tabs__close {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-left: 2px;
+  border-radius: 4px;
+  font-size: 16px;
   line-height: 1;
   color: var(--text-muted);
-  pointer-events: none;
 }
 
-.input-field input {
-  width: 100%;
-  min-width: 0;
-  border: none;
-  padding: 0;
-  margin: 0;
-  background: transparent;
-  font-size: 15px;
-  font-weight: 500;
+.patient-tabs__close:hover {
+  background: rgba(255, 255, 255, 0.06);
   color: var(--text);
-  line-height: 1.2;
 }
 
-.input-field input:focus {
-  outline: none;
+.patient-tabs__add {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
 }
 
-.input-field--name {
-  flex: 1;
-  min-width: 0;
-}
-
-.input-field--age {
-  min-width: 0;
-}
-
-.panel--patient .panel__title {
-  margin-bottom: 8px;
-}
-
-.input-field--age input {
-  text-align: left;
-  font-weight: 600;
-}
-
-/* Hide number spinners for age */
-.input-field--age input::-webkit-outer-spin-button,
-.input-field--age input::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.input-field--age input[type='number'] {
-  -moz-appearance: textfield;
+.patient-tabs__add:hover {
+  border-color: var(--primary-border);
+  color: var(--primary);
 }
 
 .alerts {
@@ -130,14 +155,14 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   align-items: start;
-  gap: 16px;
+  gap: 24px;
 }
 
 .dashboard__intake,
 .dashboard__results {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
   min-width: 0;
 }
 
@@ -154,14 +179,14 @@
   min-height: 100%;
   display: grid;
   grid-template-rows: minmax(0, 1fr) auto 240px;
-  gap: 12px;
+  gap: 16px;
 }
 
 .dashboard--balanced .dashboard__results .panel--result {
   flex: unset;
   min-height: 0;
   overflow: hidden;
-  padding: 12px;
+  padding: 16px;
 }
 
 .dashboard--balanced .dashboard__results .panel--triage-outcome {
@@ -270,10 +295,11 @@
   flex: 0 0 auto;
   display: flex;
   flex-direction: column;
-  padding: 16px;
+  padding: 20px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
   overflow: visible;
 }
 
@@ -431,7 +457,8 @@
 .panel__title {
   font-size: 13px;
   font-weight: 600;
-  color: var(--text-muted);
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
   margin-bottom: 12px;
   flex-shrink: 0;
 }
@@ -450,12 +477,16 @@
   line-height: 1.4;
 }
 
-/* Vitals — 2x2 + wide */
+/* Vitals + patient — shared field layout */
 .vitals-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: auto;
   gap: 12px;
+}
+
+.vitals-grid--patient {
+  grid-template-columns: minmax(0, 1fr) 100px;
 }
 
 .vital-cell {
@@ -476,8 +507,8 @@
 .vital-cell span,
 .field__label {
   font-size: 12px;
-  font-weight: 500;
-  color: var(--text-muted);
+  font-weight: 600;
+  color: var(--text-secondary);
   flex-shrink: 0;
 }
 
@@ -499,6 +530,17 @@
   font-weight: 600;
   color: var(--text);
   padding: 8px 10px;
+  box-shadow: 0 1px 0 rgba(0, 0, 0, 0.2) inset;
+}
+
+.vital-cell input[type='number']::-webkit-outer-spin-button,
+.vital-cell input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.vital-cell input[type='number'] {
+  -moz-appearance: textfield;
 }
 
 .vital-cell input:focus {
@@ -510,6 +552,7 @@
 .vital-cell em {
   font-size: 13px;
   font-style: normal;
+  font-weight: 500;
   color: var(--text-muted);
 }
 
@@ -519,10 +562,6 @@
   grid-template-columns: 1fr 1fr;
   gap: 10px;
   align-items: stretch;
-}
-
-.field-row--patient {
-  grid-template-columns: minmax(0, 1fr) 88px;
 }
 
 .field {
@@ -956,7 +995,7 @@
 }
 
 .btn--primary {
-  color: #0e1217;
+  color: var(--on-primary);
   background: var(--primary);
   border-color: var(--primary);
   font-weight: 600;
@@ -996,8 +1035,8 @@
 }
 
 .btn--primary .spinner {
-  border-color: rgba(12, 16, 21, 0.25);
-  border-top-color: #0c1015;
+  border-color: rgba(12, 16, 24, 0.3);
+  border-top-color: var(--on-primary);
 }
 
 .spinner--lg {
@@ -1027,6 +1066,7 @@
     height: auto;
     min-height: 100vh;
     overflow: visible;
+    padding: 20px 20px 24px;
   }
 
   .dashboard {
@@ -1045,7 +1085,7 @@
     grid-column: 1;
   }
 
-  .field-row--patient {
+  .vitals-grid--patient {
     grid-template-columns: minmax(0, 1fr) 72px;
   }
 

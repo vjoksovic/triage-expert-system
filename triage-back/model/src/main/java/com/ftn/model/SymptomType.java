@@ -4,6 +4,7 @@ public enum SymptomType {
     FEVER,
     TACHYCARDIA,
     HYPOTENSION,
+    HYPOXEMIA,
     DISPNEA,
     CONFUSION
 }

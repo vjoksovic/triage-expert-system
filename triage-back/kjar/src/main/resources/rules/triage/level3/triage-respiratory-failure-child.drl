@@ -1,0 +1,27 @@
+package rules.triage.level3
+
+import com.ftn.model.AgeCategory;
+import com.ftn.model.ChronicCondition;
+import com.ftn.model.Diagnosis;
+import com.ftn.model.DiagnosisType;
+import com.ftn.model.Patient;
+import com.ftn.model.Priority;
+import com.ftn.model.Symptom;
+import com.ftn.model.SymptomType;
+import com.ftn.model.TriageResult;
+import com.ftn.model.Ward;
+
+rule "Triage respiratory failure child without comorbidity"
+    salience 50
+when
+    Diagnosis(type == DiagnosisType.RESPIRATORY_FAILURE)
+    exists Symptom(type == SymptomType.TACHYCARDIA)
+    Patient(
+        ageCategory == AgeCategory.CHILD,
+        chronicConditions not contains ChronicCondition.DIABETES,
+        chronicConditions not contains ChronicCondition.COPD
+    )
+    not TriageResult()
+then
+    insert(new TriageResult(Priority.P2, Ward.PULMOLOGY));
+end

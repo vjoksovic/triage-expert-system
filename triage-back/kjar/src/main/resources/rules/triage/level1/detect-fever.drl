@@ -1,4 +1,4 @@
-package rules.triage
+package rules.triage.level1
 
 import com.ftn.model.AgeCategory;
 import com.ftn.model.Patient;
@@ -9,7 +9,7 @@ import com.ftn.model.Vitals;
 rule "Detect fever"
 when
     Patient($category : ageCategory != null)
-    $vitals : Vitals(
+    Vitals(
         ($category == AgeCategory.CHILD && temperature > 37.5) ||
         ($category == AgeCategory.ADULT && temperature > 38.0) ||
         ($category == AgeCategory.SENIOR && temperature > 37.8)

@@ -43,6 +43,20 @@ export interface CepMonitorResponse {
   activatedRules: string[];
 }
 
+export interface PatientTab {
+  id: string;
+  model: TriageRequest;
+  triageHistory: TriagedVitalsSnapshot[];
+  loading: boolean;
+  error: string;
+  result: TriageResponse | null;
+  evaluatedAt: Date | null;
+  cepLoading: boolean;
+  cepError: string;
+  cepResult: CepMonitorResponse | null;
+  cepMonitoredAt: Date | null;
+}
+
 /** Vitals snapshot captured when triage completes successfully. */
 export interface TriagedVitalsSnapshot {
   measuredAt: Date;

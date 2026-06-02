@@ -1,5 +1,6 @@
 package com.ftn.model;
 
 public enum DiagnosisType {
-    SEPSIS_SUSPECTED
+    SEPSIS_SUSPECTED,
+    RESPIRATORY_FAILURE
 }

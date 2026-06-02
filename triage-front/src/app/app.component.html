@@ -3,7 +3,7 @@
     <div class="header__left">
       <div class="header__logo" aria-hidden="true">
         <svg viewBox="0 0 32 32" fill="none">
-          <rect width="32" height="32" rx="8" fill="#7dd3e8"/>
+          <rect width="32" height="32" rx="8" fill="#5f87a8"/>
           <path d="M16 8v16M10 13h12M10 19h12" stroke="#fff" stroke-width="2" stroke-linecap="round"/>
         </svg>
       </div>
@@ -11,6 +11,36 @@
     </div>
 
   </header>
+
+  <nav class="patient-tabs" aria-label="Patients">
+    <div class="patient-tabs__list" role="tablist">
+      @for (tab of tabs; track tab.id) {
+        <button
+          type="button"
+          class="patient-tabs__tab"
+          role="tab"
+          [class.patient-tabs__tab--active]="tab.id === activeTabId"
+          [attr.aria-selected]="tab.id === activeTabId"
+          (click)="selectTab(tab.id)">
+          <span class="patient-tabs__label">{{ tabLabel(tab) }}</span>
+          @if (tab.result?.priority) {
+            <span class="patient-tabs__priority">{{ tab.result!.priority }}</span>
+          }
+          @if (tabs.length > 1) {
+            <span
+              class="patient-tabs__close"
+              role="button"
+              tabindex="-1"
+              [attr.aria-label]="'Close ' + tabLabel(tab)"
+              (click)="closeTab(tab.id, $event)">×</span>
+          }
+        </button>
+      }
+    </div>
+    <button type="button" class="patient-tabs__add" (click)="addTab()" aria-label="Add patient">
+      + Patient
+    </button>
+  </nav>
 
   @if (error || cepError) {
     <div class="alerts">
@@ -27,27 +57,33 @@
     <div class="dashboard__intake">
       <section class="panel panel--patient">
         <h2 class="panel__title">Patient</h2>
-        <div class="panel__content field-row field-row--patient">
-          <label class="input-field input-field--name" for="patient-name">
-            <span class="input-field__label">Name</span>
-            <input
-              id="patient-name"
-              [(ngModel)]="model.fullName"
-              name="patientName"
-              autocomplete="name"
-            />
-          </label>
-          <label class="input-field input-field--age" for="patient-age">
-            <span class="input-field__label">Age</span>
-            <input
-              id="patient-age"
-              type="number"
-              [(ngModel)]="model.age"
-              name="patientAge"
-              min="0"
-              max="120"
-            />
-          </label>
+        <div class="panel__content">
+          <div class="vitals-grid vitals-grid--patient">
+            <label class="vital-cell" [attr.for]="'patient-name-' + activeTabId">
+              <span>Name</span>
+              <div class="vital-cell__value">
+                <input
+                  [id]="'patient-name-' + activeTabId"
+                  [(ngModel)]="model.fullName"
+                  [name]="'patientName-' + activeTabId"
+                  autocomplete="name"
+                />
+              </div>
+            </label>
+            <label class="vital-cell" [attr.for]="'patient-age-' + activeTabId">
+              <span>Age</span>
+              <div class="vital-cell__value">
+                <input
+                  [id]="'patient-age-' + activeTabId"
+                  type="number"
+                  [(ngModel)]="model.age"
+                  [name]="'patientAge-' + activeTabId"
+                  min="0"
+                  max="120"
+                />
+              </div>
+            </label>
+          </div>
         </div>
       </section>
 

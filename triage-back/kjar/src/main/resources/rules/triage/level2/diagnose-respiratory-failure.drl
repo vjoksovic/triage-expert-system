@@ -1,0 +1,17 @@
+package rules.triage.level2
+
+import com.ftn.model.Diagnosis;
+import com.ftn.model.DiagnosisType;
+import com.ftn.model.Symptom;
+import com.ftn.model.SymptomType;
+
+rule "Diagnose respiratory failure"
+    salience 100
+when
+    exists Symptom(type == SymptomType.HYPOXEMIA)
+    exists Symptom(type == SymptomType.DISPNEA)
+    not Diagnosis(type == DiagnosisType.RESPIRATORY_FAILURE)
+then
+    insert(new Diagnosis(DiagnosisType.RESPIRATORY_FAILURE,
+        "Hypoxemia and dyspnea suggest respiratory failure."));
+end

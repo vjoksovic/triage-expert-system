@@ -1,4 +1,4 @@
-package rules.triage
+package rules.triage.level1
 
 import com.ftn.model.AgeCategory;
 import com.ftn.model.Patient;
@@ -9,7 +9,7 @@ import com.ftn.model.Vitals;
 rule "Detect hypotension"
 when
     Patient($category : ageCategory != null)
-    $vitals : Vitals(
+    Vitals(
         ($category == AgeCategory.CHILD && systolicBloodPressure < 90) ||
         ($category == AgeCategory.ADULT && systolicBloodPressure < 100) ||
         ($category == AgeCategory.SENIOR && systolicBloodPressure < 110)

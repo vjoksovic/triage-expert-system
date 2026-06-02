@@ -1,0 +1,17 @@
+package rules.triage.level3
+
+import com.ftn.model.Diagnosis;
+import com.ftn.model.Patient;
+import com.ftn.model.Priority;
+import com.ftn.model.TriageResult;
+import com.ftn.model.Ward;
+
+rule "Triage without diagnosis"
+    salience -100
+when
+    not Diagnosis()
+    Patient()
+    not TriageResult()
+then
+    insert(new TriageResult(Priority.P3, Ward.GENERAL_ER));
+end

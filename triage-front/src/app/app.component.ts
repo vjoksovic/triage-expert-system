@@ -5,6 +5,7 @@ import { finalize } from 'rxjs';
 import { TriageApiService } from './triage-api.service';
 import {
   CepMonitorResponse,
+  PatientTab,
   TriagedVitalsSnapshot,
   TriageRequest,
   TriageResponse,
@@ -20,18 +21,6 @@ type PriorityLevel = 'P1' | 'P2' | 'P3' | 'P4' | 'P5';
   styleUrl: './app.component.css'
 })
 export class AppComponent {
-  model: TriageRequest = {
-    fullName: 'John Smith',
-    age: 68,
-    temperature: 38.9,
-    systolicBloodPressure: 95,
-    diastolicBloodPressure: 60,
-    pulse: 118,
-    spo2: 91,
-    chronicConditions: ['DIABETES'],
-    symptoms: ['DISPNEA', 'CONFUSION']
-  };
-
   readonly chronicOptions = [
     { value: 'DIABETES', label: 'Diabetes' },
     { value: 'COPD', label: 'COPD' }
@@ -42,19 +31,93 @@ export class AppComponent {
     { value: 'CONFUSION', label: 'Confusion' }
   ];
 
-  triageHistory: TriagedVitalsSnapshot[] = [];
-
-  loading = false;
-  error = '';
-  result: TriageResponse | null = null;
-  evaluatedAt: Date | null = null;
-
-  cepLoading = false;
-  cepError = '';
-  cepResult: CepMonitorResponse | null = null;
-  cepMonitoredAt: Date | null = null;
+  tabs: PatientTab[] = [this.createTab(this.demoModel())];
+  activeTabId = this.tabs[0].id;
 
   constructor(private readonly triageApiService: TriageApiService) {}
+
+  get activeTab(): PatientTab {
+    return this.tabs.find((tab) => tab.id === this.activeTabId) ?? this.tabs[0];
+  }
+
+  get model(): TriageRequest {
+    return this.activeTab.model;
+  }
+
+  get triageHistory(): TriagedVitalsSnapshot[] {
+    return this.activeTab.triageHistory;
+  }
+
+  get loading(): boolean {
+    return this.activeTab.loading;
+  }
+
+  get error(): string {
+    return this.activeTab.error;
+  }
+
+  get result(): TriageResponse | null {
+    return this.activeTab.result;
+  }
+
+  get evaluatedAt(): Date | null {
+    return this.activeTab.evaluatedAt;
+  }
+
+  get cepLoading(): boolean {
+    return this.activeTab.cepLoading;
+  }
+
+  get cepError(): string {
+    return this.activeTab.cepError;
+  }
+
+  get cepResult(): CepMonitorResponse | null {
+    return this.activeTab.cepResult;
+  }
+
+  get cepHasAlarm(): boolean {
+    return (this.activeTab.cepResult?.alarms.length ?? 0) > 0;
+  }
+
+  get hasTriageResult(): boolean {
+    return this.activeTab.result !== null;
+  }
+
+  tabLabel(tab: PatientTab): string {
+    const name = tab.model.fullName.trim();
+    return name || 'New patient';
+  }
+
+  selectTab(tabId: string): void {
+    if (this.tabs.some((tab) => tab.id === tabId)) {
+      this.activeTabId = tabId;
+    }
+  }
+
+  addTab(): void {
+    const tab = this.createTab(this.emptyModel());
+    this.tabs = [...this.tabs, tab];
+    this.activeTabId = tab.id;
+  }
+
+  closeTab(tabId: string, event: Event): void {
+    event.stopPropagation();
+    if (this.tabs.length <= 1) {
+      return;
+    }
+
+    const index = this.tabs.findIndex((tab) => tab.id === tabId);
+    if (index < 0) {
+      return;
+    }
+
+    this.tabs = this.tabs.filter((tab) => tab.id !== tabId);
+    if (this.activeTabId === tabId) {
+      const nextIndex = Math.min(index, this.tabs.length - 1);
+      this.activeTabId = this.tabs[nextIndex].id;
+    }
+  }
 
   toggleSelection(values: string[], option: string): void {
     const index = values.indexOf(option);
@@ -65,50 +128,26 @@ export class AppComponent {
     values.push(option);
   }
 
-  private runCepMonitoring(): void {
-    if (!this.triageHistory.length) {
-      return;
-    }
-
-    this.cepLoading = true;
-    this.cepError = '';
-    this.cepResult = null;
-    this.cepMonitoredAt = null;
-
-    this.triageApiService.monitorCep({ vitalsReadings: this.buildVitalsReadings() })
-      .pipe(finalize(() => {
-        this.cepLoading = false;
-      }))
-      .subscribe({
-        next: (response) => {
-          this.cepResult = response;
-          this.cepMonitoredAt = new Date();
-        },
-        error: () => {
-          this.cepError = 'CEP monitoring failed. Ensure the backend is running on port 8090.';
-        }
-      });
-  }
-
   evaluate(): void {
-    this.loading = true;
-    this.error = '';
-    this.result = null;
-    this.evaluatedAt = null;
+    const tab = this.activeTab;
+    tab.loading = true;
+    tab.error = '';
+    tab.result = null;
+    tab.evaluatedAt = null;
 
-    this.triageApiService.evaluate(this.model)
+    this.triageApiService.evaluate(tab.model)
       .pipe(finalize(() => {
-        this.loading = false;
+        tab.loading = false;
       }))
       .subscribe({
         next: (response) => {
-          this.result = response;
-          this.evaluatedAt = new Date();
-          this.recordTriagedVitals(this.evaluatedAt);
-          this.runCepMonitoring();
+          tab.result = response;
+          tab.evaluatedAt = new Date();
+          this.recordTriagedVitals(tab, tab.evaluatedAt);
+          this.runCepMonitoring(tab);
         },
         error: () => {
-          this.error = 'Failed to reach the backend. Ensure the server is running on port 8090.';
+          tab.error = 'Failed to reach the backend. Ensure the server is running on port 8090.';
         }
       });
   }
@@ -130,7 +169,7 @@ export class AppComponent {
     if (key && map[key]) {
       return map[key];
     }
-    return { label: 'Not assigned', description: 'Run triage', cssClass: 'priority-unknown' };
+    return map.P3;
   }
 
   wardLabel(ward: string | null | undefined): string {
@@ -140,7 +179,7 @@ export class AppComponent {
       INFECTOLOGY: 'Infectious diseases',
       GENERAL_ER: 'General emergency'
     };
-    return ward ? (labels[ward] ?? ward) : 'Not assigned';
+    return ward ? (labels[ward] ?? ward) : 'General emergency';
   }
 
   formatEnum(value: string): string {
@@ -166,20 +205,8 @@ export class AppComponent {
       .join(', ');
   }
 
-  get cepHasAlarm(): boolean {
-    return (this.cepResult?.alarms.length ?? 0) > 0;
-  }
-
-  get hasTriageResult(): boolean {
-    return this.result !== null;
-  }
-
-  get hasCepResult(): boolean {
-    return this.cepResult !== null;
-  }
-
-  buildVitalsReadings(): VitalsReading[] {
-    return [...this.triageHistory]
+  buildVitalsReadings(tab: PatientTab): VitalsReading[] {
+    return [...tab.triageHistory]
       .sort((a, b) => a.measuredAt.getTime() - b.measuredAt.getTime())
       .map((snapshot) => ({
         temperature: snapshot.temperature,
@@ -191,22 +218,6 @@ export class AppComponent {
       }));
   }
 
-  private recordTriagedVitals(measuredAt: Date): void {
-    this.triageHistory.push({
-      measuredAt,
-      temperature: this.model.temperature,
-      systolicBloodPressure: this.model.systolicBloodPressure,
-      diastolicBloodPressure: this.model.diastolicBloodPressure,
-      pulse: this.model.pulse,
-      spo2: this.model.spo2
-    });
-  }
-
-  private toLocalDateTimeString(date: Date): string {
-    const pad = (value: number) => String(value).padStart(2, '0');
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
-  }
-
   selectedSymptomLabels(): string {
     if (!this.model.symptoms.length) {
       return '—';
@@ -214,5 +225,90 @@ export class AppComponent {
     return this.model.symptoms
       .map((s) => this.optionLabel(this.symptomOptions, s))
       .join(', ');
+  }
+
+  private runCepMonitoring(tab: PatientTab): void {
+    if (!tab.triageHistory.length) {
+      return;
+    }
+
+    tab.cepLoading = true;
+    tab.cepError = '';
+    tab.cepResult = null;
+    tab.cepMonitoredAt = null;
+
+    this.triageApiService.monitorCep({ vitalsReadings: this.buildVitalsReadings(tab) })
+      .pipe(finalize(() => {
+        tab.cepLoading = false;
+      }))
+      .subscribe({
+        next: (response) => {
+          tab.cepResult = response;
+          tab.cepMonitoredAt = new Date();
+        },
+        error: () => {
+          tab.cepError = 'CEP monitoring failed. Ensure the backend is running on port 8090.';
+        }
+      });
+  }
+
+  private recordTriagedVitals(tab: PatientTab, measuredAt: Date): void {
+    tab.triageHistory.push({
+      measuredAt,
+      temperature: tab.model.temperature,
+      systolicBloodPressure: tab.model.systolicBloodPressure,
+      diastolicBloodPressure: tab.model.diastolicBloodPressure,
+      pulse: tab.model.pulse,
+      spo2: tab.model.spo2
+    });
+  }
+
+  private createTab(model: TriageRequest): PatientTab {
+    return {
+      id: crypto.randomUUID(),
+      model,
+      triageHistory: [],
+      loading: false,
+      error: '',
+      result: null,
+      evaluatedAt: null,
+      cepLoading: false,
+      cepError: '',
+      cepResult: null,
+      cepMonitoredAt: null
+    };
+  }
+
+  private demoModel(): TriageRequest {
+    return {
+      fullName: 'John Smith',
+      age: 68,
+      temperature: 38.9,
+      systolicBloodPressure: 95,
+      diastolicBloodPressure: 60,
+      pulse: 118,
+      spo2: 91,
+      chronicConditions: ['DIABETES'],
+      symptoms: ['DISPNEA', 'CONFUSION']
+    };
+  }
+
+  private emptyModel(): TriageRequest {
+    return {
+      fullName: '',
+      age: 45,
+      temperature: 37.0,
+      systolicBloodPressure: 120,
+      diastolicBloodPressure: 80,
+      pulse: 72,
+      spo2: 98,
+      chronicConditions: [],
+      symptoms: []
+    };
+  }
+
+  private toLocalDateTimeString(date: Date): string {
+    const pad = (value: number) => String(value).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}:${pad(date.getSeconds())}`;
   }
 }

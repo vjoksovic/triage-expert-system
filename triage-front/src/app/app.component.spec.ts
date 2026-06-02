@@ -18,5 +18,6 @@ describe('AppComponent', () => {
     const fixture = TestBed.createComponent(AppComponent);
     const app = fixture.componentInstance;
     expect(app.model.fullName).toEqual('John Smith');
+    expect(app.tabs.length).toBe(1);
   });
 });
