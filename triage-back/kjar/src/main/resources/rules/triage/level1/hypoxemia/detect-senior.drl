@@ -6,14 +6,10 @@ import com.ftn.model.Symptom;
 import com.ftn.model.SymptomType;
 import com.ftn.model.Vitals;
 
-rule "Detect hypoxemia"
+rule "Detect hypoxemia in senior"
 when
-    Patient($category : ageCategory != null)
-    Vitals(
-        ($category == AgeCategory.CHILD && spo2 < 95) ||
-        ($category == AgeCategory.ADULT && spo2 < 94) ||
-        ($category == AgeCategory.SENIOR && spo2 < 92)
-    )
+    Patient(ageCategory == AgeCategory.SENIOR)
+    Vitals(spo2 < 92)
     not Symptom(type == SymptomType.HYPOXEMIA)
 then
     insert(new Symptom(SymptomType.HYPOXEMIA));

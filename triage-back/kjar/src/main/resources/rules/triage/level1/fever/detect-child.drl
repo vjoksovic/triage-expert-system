@@ -6,14 +6,10 @@ import com.ftn.model.Symptom;
 import com.ftn.model.SymptomType;
 import com.ftn.model.Vitals;
 
-rule "Detect fever"
+rule "Detect fever in child"
 when
-    Patient($category : ageCategory != null)
-    Vitals(
-        ($category == AgeCategory.CHILD && temperature > 37.5) ||
-        ($category == AgeCategory.ADULT && temperature > 38.0) ||
-        ($category == AgeCategory.SENIOR && temperature > 37.8)
-    )
+    Patient(ageCategory == AgeCategory.CHILD)
+    Vitals(temperature > 37.5)
     not Symptom(type == SymptomType.FEVER)
 then
     insert(new Symptom(SymptomType.FEVER));

@@ -6,14 +6,10 @@ import com.ftn.model.Symptom;
 import com.ftn.model.SymptomType;
 import com.ftn.model.Vitals;
 
-rule "Detect tachycardia"
+rule "Detect tachycardia in adult"
 when
-    Patient($category : ageCategory != null)
-    Vitals(
-        ($category == AgeCategory.CHILD && pulse > 100) ||
-        ($category == AgeCategory.ADULT && pulse > 100) ||
-        ($category == AgeCategory.SENIOR && pulse > 90)
-    )
+    Patient(ageCategory == AgeCategory.ADULT)
+    Vitals(pulse > 100)
     not Symptom(type == SymptomType.TACHYCARDIA)
 then
     insert(new Symptom(SymptomType.TACHYCARDIA));

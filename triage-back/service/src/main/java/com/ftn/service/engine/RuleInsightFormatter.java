@@ -24,14 +24,26 @@ public final class RuleInsightFormatter {
         }
 
         switch (ruleName) {
-            case "Classify patient by age":
+            case "Classify child patient":
+            case "Classify adult patient":
+            case "Classify senior patient":
                 return explainAgeClassification(patient);
-            case "Detect fever":
+            case "Detect fever in child":
+            case "Detect fever in adult":
+            case "Detect fever in senior":
                 return explainFever(patient, vitals);
-            case "Detect tachycardia":
+            case "Detect tachycardia in child":
+            case "Detect tachycardia in adult":
+            case "Detect tachycardia in senior":
                 return explainTachycardia(patient, vitals);
-            case "Detect hypotension":
+            case "Detect hypotension in child":
+            case "Detect hypotension in adult":
+            case "Detect hypotension in senior":
                 return explainHypotension(patient, vitals);
+            case "Detect hypoxemia in child":
+            case "Detect hypoxemia in adult":
+            case "Detect hypoxemia in senior":
+                return explainHypoxemia(patient, vitals);
             case "Sepsis suspected in diabetic patient":
                 return "Patient has suspected sepsis: fever and tachycardia with diabetes (priority P1, internal medicine).";
             case "SpO2 Rapid Drop":
@@ -75,6 +87,19 @@ public final class RuleInsightFormatter {
         return "Patient has tachycardia: pulse is above the age-specific limit.";
     }
 
+    private static String explainHypoxemia(Patient patient, Vitals vitals) {
+        AgeCategory category = patient != null ? patient.getAgeCategory() : null;
+        int limit = hypoxemiaLimit(category);
+        if (vitals != null && category != null) {
+            return String.format(
+                    "Patient has hypoxemia: SpO2 %d%% is below the %d%% limit for %s.",
+                    vitals.getSpo2(),
+                    limit,
+                    formatAgeCategory(category));
+        }
+        return "Patient has hypoxemia: SpO2 is below the age-specific limit.";
+    }
+
     private static String explainHypotension(Patient patient, Vitals vitals) {
         AgeCategory category = patient != null ? patient.getAgeCategory() : null;
         int limit = hypotensionLimit(category);
@@ -103,6 +128,16 @@ public final class RuleInsightFormatter {
             return 90;
         }
         return 100;
+    }
+
+    private static int hypoxemiaLimit(AgeCategory category) {
+        if (category == AgeCategory.CHILD) {
+            return 95;
+        }
+        if (category == AgeCategory.SENIOR) {
+            return 92;
+        }
+        return 94;
     }
 
     private static int hypotensionLimit(AgeCategory category) {

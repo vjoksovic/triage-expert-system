@@ -1,0 +1,16 @@
+package rules.triage.level1
+
+import com.ftn.model.AgeCategory;
+import com.ftn.model.Patient;
+import com.ftn.model.Symptom;
+import com.ftn.model.SymptomType;
+import com.ftn.model.Vitals;
+
+rule "Detect hypotension in child"
+when
+    Patient(ageCategory == AgeCategory.CHILD)
+    Vitals(systolicBloodPressure < 90)
+    not Symptom(type == SymptomType.HYPOTENSION)
+then
+    insert(new Symptom(SymptomType.HYPOTENSION));
+end
