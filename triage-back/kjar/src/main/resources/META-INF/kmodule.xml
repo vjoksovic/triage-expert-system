@@ -1,8 +1,8 @@
 <kmodule xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://jboss.org/kie/6.0.0/kmodule">
-    <kbase name="triageKBase" packages="rules.triage.level1,rules.triage.level2,rules.triage.level3">
+    <kbase name="triageKBase" packages="rules.triage.level1,rules.triage.level2,rules.triage.level3,rules.triage.backward">
         <ksession name="triageKSession"/>
     </kbase>
-    <kbase name="cepKBase" packages="rules.cep" eventProcessingMode="stream">
-        <ksession name="cepKSession" clockType="pseudo"/>
+    <kbase name="cepKbase" packages="rules.cep" eventProcessingMode="stream">
+        <ksession name="cepKsessionPseudoClock" clockType="pseudo"/>
     </kbase>
 </kmodule>

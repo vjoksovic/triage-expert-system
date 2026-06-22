@@ -5,7 +5,15 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Objects;
 
-public class Vitals implements Serializable {
+import org.kie.api.definition.type.Expires;
+import org.kie.api.definition.type.Role;
+import org.kie.api.definition.type.Role.Type;
+import org.kie.api.definition.type.Timestamp;
+
+@Role(Type.EVENT)
+@Timestamp("measuredAtEpochMillis")
+@Expires("15m")
+public class VitalsEvent implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private double temperature;
@@ -16,10 +24,10 @@ public class Vitals implements Serializable {
     private LocalDateTime measuredAt;
     private long measuredAtEpochMillis;
 
-    public Vitals() {
+    public VitalsEvent() {
     }
 
-    public Vitals(double temperature, int systolicBloodPressure, int diastolicBloodPressure, int pulse, int spo2,
+    public VitalsEvent(double temperature, int systolicBloodPressure, int diastolicBloodPressure, int pulse, int spo2,
             LocalDateTime measuredAt) {
         this.temperature = temperature;
         this.systolicBloodPressure = systolicBloodPressure;
@@ -95,8 +103,8 @@ public class Vitals implements Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(diastolicBloodPressure, measuredAt, measuredAtEpochMillis, pulse, spo2,
-                systolicBloodPressure, temperature);
+        return Objects.hash(diastolicBloodPressure, measuredAtEpochMillis, pulse, spo2, systolicBloodPressure,
+                temperature);
     }
 
     @Override
@@ -107,20 +115,12 @@ public class Vitals implements Serializable {
         if (obj == null || getClass() != obj.getClass()) {
             return false;
         }
-        Vitals other = (Vitals) obj;
+        VitalsEvent other = (VitalsEvent) obj;
         return Double.doubleToLongBits(temperature) == Double.doubleToLongBits(other.temperature)
                 && systolicBloodPressure == other.systolicBloodPressure
                 && diastolicBloodPressure == other.diastolicBloodPressure
                 && pulse == other.pulse
                 && spo2 == other.spo2
-                && measuredAtEpochMillis == other.measuredAtEpochMillis
-                && Objects.equals(measuredAt, other.measuredAt);
-    }
-
-    @Override
-    public String toString() {
-        return "Vitals [temperature=" + temperature + ", systolicBloodPressure=" + systolicBloodPressure
-                + ", diastolicBloodPressure=" + diastolicBloodPressure + ", pulse=" + pulse + ", spo2=" + spo2
-                + ", measuredAt=" + measuredAt + "]";
+                && measuredAtEpochMillis == other.measuredAtEpochMillis;
     }
 }

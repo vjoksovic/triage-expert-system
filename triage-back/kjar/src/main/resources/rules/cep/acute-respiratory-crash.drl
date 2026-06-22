@@ -1,0 +1,49 @@
+package rules.cep
+
+import com.ftn.model.CepAlarm;
+import com.ftn.model.Priority;
+import com.ftn.model.VitalsEvent;
+
+rule "Acute Respiratory Crash Prediction - Pulse Collapse"
+salience 110
+activation-group "acute-respiratory-crash"
+no-loop true
+when
+    $current : VitalsEvent($currentSpo2 : spo2, $currentPulse : pulse)
+    Number($peakSpo2 : intValue) from accumulate(
+        VitalsEvent($s : spo2) over window:time(10m),
+        max($s))
+    Number($peakPulse : intValue) from accumulate(
+        VitalsEvent($p : pulse) over window:time(10m),
+        max($p))
+    eval($currentSpo2 < $peakSpo2 - 5)
+    eval($currentPulse <= $peakPulse - 10)
+    not (CepAlarm(ruleName == "Acute Respiratory Crash Prediction"))
+then
+    insert(new CepAlarm(
+        "Acute Respiratory Crash Prediction",
+        Priority.P1,
+        "Concurrent SpO2 and pulse collapse - cardiac fatigue from hypoxia, imminent arrest risk."));
+end
+
+rule "Acute Respiratory Crash Prediction - Failed Compensation"
+salience 100
+activation-group "acute-respiratory-crash"
+no-loop true
+when
+    $current : VitalsEvent($currentSpo2 : spo2, $currentPulse : pulse)
+    Number($peakSpo2 : intValue) from accumulate(
+        VitalsEvent($s : spo2) over window:time(10m),
+        max($s))
+    Number($minPulse : intValue) from accumulate(
+        VitalsEvent($p : pulse) over window:time(10m),
+        min($p))
+    eval($currentSpo2 < $peakSpo2 - 5)
+    eval($currentPulse <= $minPulse + 8)
+    not (CepAlarm(ruleName == "Acute Respiratory Crash Prediction"))
+then
+    insert(new CepAlarm(
+        "Acute Respiratory Crash Prediction",
+        Priority.P1,
+        "SpO2 dropped sharply without compensatory tachycardia - imminent respiratory collapse risk."));
+end

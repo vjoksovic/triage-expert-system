@@ -8,8 +8,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.ftn.service.dto.CepMonitorRequestDto;
 import com.ftn.service.dto.CepMonitorResponseDto;
+import com.ftn.service.dto.SepsisQueryResponseDto;
 import com.ftn.service.dto.TriageRequestDto;
 import com.ftn.service.dto.TriageResponseDto;
+import com.ftn.service.service.BackwardChainingService;
 import com.ftn.service.service.CepMonitoringService;
 import com.ftn.service.service.TriageEngineService;
 
@@ -19,10 +21,15 @@ import com.ftn.service.service.TriageEngineService;
 public class TriageController {
     private final TriageEngineService triageEngineService;
     private final CepMonitoringService cepMonitoringService;
+    private final BackwardChainingService backwardChainingService;
 
-    public TriageController(TriageEngineService triageEngineService, CepMonitoringService cepMonitoringService) {
+    public TriageController(
+            TriageEngineService triageEngineService,
+            CepMonitoringService cepMonitoringService,
+            BackwardChainingService backwardChainingService) {
         this.triageEngineService = triageEngineService;
         this.cepMonitoringService = cepMonitoringService;
+        this.backwardChainingService = backwardChainingService;
     }
 
     @PostMapping("/evaluate")
@@ -30,8 +37,13 @@ public class TriageController {
         return triageEngineService.evaluate(request);
     }
 
+    @PostMapping("/backward/sepsis")
+    public SepsisQueryResponseDto querySepsisSuspected(@RequestBody TriageRequestDto request) {
+        return backwardChainingService.querySepsisSuspected(request);
+    }
+
     @PostMapping("/cep/monitor")
     public CepMonitorResponseDto monitorVitalsStream(@RequestBody CepMonitorRequestDto request) {
-        return cepMonitoringService.monitorSpo2Trend(request);
+        return cepMonitoringService.monitorVitalsStream(request);
     }
 }

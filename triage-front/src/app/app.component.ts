@@ -6,6 +6,7 @@ import { TriageApiService } from './triage-api.service';
 import {
   CepMonitorResponse,
   PatientTab,
+  SepsisQueryResponse,
   TriagedVitalsSnapshot,
   TriageRequest,
   TriageResponse,
@@ -80,8 +81,41 @@ export class AppComponent {
     return (this.activeTab.cepResult?.alarms.length ?? 0) > 0;
   }
 
+  get backwardLoading(): boolean {
+    return this.activeTab.backwardLoading;
+  }
+
+  get backwardError(): string {
+    return this.activeTab.backwardError;
+  }
+
+  get sepsisQueryResult(): SepsisQueryResponse | null {
+    return this.activeTab.sepsisQueryResult;
+  }
+
+  get sepsisQueriedAt(): Date | null {
+    return this.activeTab.sepsisQueriedAt;
+  }
+
   get hasTriageResult(): boolean {
     return this.activeTab.result !== null;
+  }
+
+  get clinicalReasoningCollapsed(): boolean {
+    return this.activeTab.clinicalReasoningCollapsed;
+  }
+
+  toggleClinicalReasoning(): void {
+    this.activeTab.clinicalReasoningCollapsed = !this.activeTab.clinicalReasoningCollapsed;
+  }
+
+  logicLabel(query: string): string | null {
+    const labels: Record<string, string> = {
+      isSepsaSuspected: 'AND',
+      hasInfectionRisk: 'OR',
+      hasHemodynamicInstability: 'AND'
+    };
+    return labels[query] ?? null;
   }
 
   tabLabel(tab: PatientTab): string {
@@ -134,6 +168,7 @@ export class AppComponent {
     tab.error = '';
     tab.result = null;
     tab.evaluatedAt = null;
+    tab.clinicalReasoningCollapsed = true;
 
     this.triageApiService.evaluate(tab.model)
       .pipe(finalize(() => {
@@ -148,6 +183,28 @@ export class AppComponent {
         },
         error: () => {
           tab.error = 'Failed to reach the backend. Ensure the server is running on port 8090.';
+        }
+      });
+  }
+
+  querySepsisSuspected(): void {
+    const tab = this.activeTab;
+    tab.backwardLoading = true;
+    tab.backwardError = '';
+    tab.sepsisQueryResult = null;
+    tab.sepsisQueriedAt = null;
+
+    this.triageApiService.querySepsisSuspected(tab.model)
+      .pipe(finalize(() => {
+        tab.backwardLoading = false;
+      }))
+      .subscribe({
+        next: (response) => {
+          tab.sepsisQueryResult = response;
+          tab.sepsisQueriedAt = new Date();
+        },
+        error: () => {
+          tab.backwardError = 'Backward chaining query failed. Ensure the backend is running on port 8090.';
         }
       });
   }
@@ -275,7 +332,12 @@ export class AppComponent {
       cepLoading: false,
       cepError: '',
       cepResult: null,
-      cepMonitoredAt: null
+      cepMonitoredAt: null,
+      backwardLoading: false,
+      backwardError: '',
+      sepsisQueryResult: null,
+      sepsisQueriedAt: null,
+      clinicalReasoningCollapsed: true
     };
   }
 

@@ -2,24 +2,24 @@ package rules.cep
 
 import com.ftn.model.CepAlarm;
 import com.ftn.model.Priority;
-import com.ftn.model.Vitals;
-
-declare Vitals
-    @role( event )
-    @timestamp( measuredAtEpochMillis )
-end
+import com.ftn.model.VitalsEvent;
 
 rule "SpO2 Rapid Drop"
 no-loop true
 when
-    $current : Vitals($currentSpo2 : spo2)
+    $current : VitalsEvent($currentSpo2 : spo2, $currentPulse : pulse)
     Number($peakSpo2 : intValue) from accumulate(
-        Vitals($s : spo2) over window:time(10m),
+        VitalsEvent($s : spo2) over window:time(10m),
         max($s))
+    Number($minPulse : intValue) from accumulate(
+        VitalsEvent($p : pulse) over window:time(10m),
+        min($p))
     eval($currentSpo2 < $peakSpo2 - 5)
+    eval($currentPulse > $minPulse + 8)
+    not (CepAlarm(ruleName == "SpO2 Rapid Drop"))
 then
     insert(new CepAlarm(
         "SpO2 Rapid Drop",
         Priority.P1,
-        "Sudden drop in oxygen saturation - assess airway and breathing."));
+        "Sudden drop in oxygen saturation with compensatory tachycardia - assess airway and breathing."));
 end

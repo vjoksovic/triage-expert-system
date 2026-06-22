@@ -43,6 +43,21 @@ export interface CepMonitorResponse {
   activatedRules: string[];
 }
 
+export interface BackwardChainingNode {
+  query: string;
+  label: string;
+  result: boolean;
+  explanation: string;
+  children: BackwardChainingNode[];
+}
+
+export interface SepsisQueryResponse {
+  question: string;
+  suspected: boolean;
+  summary: string;
+  reasoningTree: BackwardChainingNode;
+}
+
 export interface PatientTab {
   id: string;
   model: TriageRequest;
@@ -55,6 +70,11 @@ export interface PatientTab {
   cepError: string;
   cepResult: CepMonitorResponse | null;
   cepMonitoredAt: Date | null;
+  backwardLoading: boolean;
+  backwardError: string;
+  sepsisQueryResult: SepsisQueryResponse | null;
+  sepsisQueriedAt: Date | null;
+  clinicalReasoningCollapsed: boolean;
 }
 
 /** Vitals snapshot captured when triage completes successfully. */

@@ -42,7 +42,7 @@
     </button>
   </nav>
 
-  @if (error || cepError) {
+  @if (error || cepError || backwardError) {
     <div class="alerts">
       @if (error) {
         <div class="toast toast--error" role="alert">{{ error }}</div>
@@ -50,10 +50,13 @@
       @if (cepError) {
         <div class="toast toast--error" role="alert">{{ cepError }}</div>
       }
+      @if (backwardError) {
+        <div class="toast toast--error" role="alert">{{ backwardError }}</div>
+      }
     </div>
   }
 
-  <main class="dashboard" [class.dashboard--balanced]="result !== null">
+  <main class="dashboard">
     <div class="dashboard__intake">
       <section class="panel panel--patient">
         <h2 class="panel__title">Patient</h2>
@@ -172,8 +175,8 @@
       </div>
     </div>
 
-    <div class="dashboard__results">
-      <section class="panel panel--result panel--triage-outcome">
+    <div class="dashboard__triage-cep">
+    <section class="panel panel--result panel--triage-outcome">
         <div class="result-pane__head">
           <h2 class="panel__title">Triage outcome</h2>
           @if (evaluatedAt) {
@@ -211,15 +214,28 @@
                 }
               </div>
             }
-            <div class="detail-section detail-section--reasoning">
-              <h4>Clinical reasoning</h4>
-              <ul class="detail-list">
-                @for (insight of result.activatedRules; track insight) {
-                  <li>{{ insight }}</li>
-                } @empty {
-                  <li class="detail-list__empty">No rules matched</li>
-                }
-              </ul>
+            <div
+              class="detail-section detail-section--reasoning detail-section--collapsible"
+              [class.detail-section--collapsed]="clinicalReasoningCollapsed">
+              <button
+                type="button"
+                class="detail-section__toggle"
+                (click)="toggleClinicalReasoning()"
+                [attr.aria-expanded]="!clinicalReasoningCollapsed"
+                aria-controls="clinical-reasoning-list">
+                <span class="detail-section__toggle-label">Clinical reasoning</span>
+                <span class="detail-section__count">{{ result.activatedRules.length }}</span>
+                <span class="detail-section__chevron" aria-hidden="true"></span>
+              </button>
+              @if (!clinicalReasoningCollapsed) {
+                <ul id="clinical-reasoning-list" class="detail-list">
+                  @for (insight of result.activatedRules; track insight) {
+                    <li>{{ insight }}</li>
+                  } @empty {
+                    <li class="detail-list__empty">No rules matched</li>
+                  }
+                </ul>
+              }
             </div>
             <div class="detail-section detail-section--tags">
               <h4>Symptoms & diagnoses</h4>
@@ -239,7 +255,7 @@
         </div>
       </section>
 
-      <section class="panel panel--result panel--cep-outcome" [class.panel--alarm]="cepHasAlarm">
+    <section class="panel panel--result panel--cep-outcome" [class.panel--alarm]="cepHasAlarm">
         <div class="result-pane__head">
           <h2 class="panel__title">CEP monitoring</h2>
         </div>
@@ -248,7 +264,7 @@
           @if (cepLoading) {
             <div class="cep-pane__status cep-pane__status--loading">
               <span class="spinner"></span>
-              <span>Processing SpO₂ stream…</span>
+              <span>Processing vitals stream…</span>
             </div>
           } @else if (!cepResult) {
             <p class="cep-pane__status cep-pane__status--idle">CEP updates when you run triage.</p>
@@ -264,7 +280,7 @@
           } @else {
             <div class="cep-pane__status cep-pane__status--ok">
               <strong>Stream stable</strong>
-              <span>No rapid SpO₂ drop in the 10-minute window.</span>
+              <span>No acute SpO₂ / pulse pattern in the 10-minute window.</span>
             </div>
           }
           @if (cepResult; as cep) {
@@ -279,26 +295,154 @@
         </div>
       </section>
 
-      <section class="panel panel--spo2-trend">
-        <h2 class="panel__title">SpO₂ trend (CEP)</h2>
-        <div class="panel__content spo2-trend">
-          @if (!triageHistory.length) {
-            <p class="cep-empty spo2-trend__empty">SpO₂ readings appear here after each triage.</p>
-          } @else {
-            <div class="spo2-trend__scroll" role="region" aria-label="SpO₂ reading history">
-              <div class="readings-table readings-table--history">
-                <div class="readings-table__head"><span>Time</span><span>SpO₂</span></div>
-                @for (entry of triageHistory; track entry.measuredAt.getTime()) {
-                  <div class="readings-table__row">
-                    <span class="readings-table__time">{{ entry.measuredAt | date:'HH:mm:ss' }}</span>
-                    <span class="readings-table__spo2">{{ entry.spo2 }}%</span>
-                  </div>
+      <div class="vitals-trends">
+        <section class="panel panel--spo2-trend">
+          <h2 class="panel__title">SpO₂ trend (CEP)</h2>
+          <div class="panel__content vitals-trend">
+            @if (!triageHistory.length) {
+              <p class="cep-empty vitals-trend__empty">SpO₂ readings appear here after each triage.</p>
+            } @else {
+              <div class="vitals-trend__scroll" role="region" aria-label="SpO₂ reading history">
+                <div class="readings-table readings-table--history">
+                  <div class="readings-table__head"><span>Time</span><span>SpO₂</span></div>
+                  @for (entry of triageHistory; track entry.measuredAt.getTime()) {
+                    <div class="readings-table__row">
+                      <span class="readings-table__time">{{ entry.measuredAt | date:'HH:mm:ss' }}</span>
+                      <span class="readings-table__spo2">{{ entry.spo2 }}%</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </section>
+
+        <section class="panel panel--pulse-trend">
+          <h2 class="panel__title">Pulse trend (CEP)</h2>
+          <div class="panel__content vitals-trend">
+            @if (!triageHistory.length) {
+              <p class="cep-empty vitals-trend__empty">Pulse readings appear here after each triage.</p>
+            } @else {
+              <div class="vitals-trend__scroll" role="region" aria-label="Pulse reading history">
+                <div class="readings-table readings-table--history">
+                  <div class="readings-table__head"><span>Time</span><span>Pulse</span></div>
+                  @for (entry of triageHistory; track entry.measuredAt.getTime()) {
+                    <div class="readings-table__row">
+                      <span class="readings-table__time">{{ entry.measuredAt | date:'HH:mm:ss' }}</span>
+                      <span class="readings-table__pulse">{{ entry.pulse }} /min</span>
+                    </div>
+                  }
+                </div>
+              </div>
+            }
+          </div>
+        </section>
+      </div>
+    </div>
+
+    <section
+      class="panel panel--result panel--backward-outcome"
+      [class.panel--backward-outcome--active]="sepsisQueryResult !== null || backwardLoading">
+      <div class="result-pane__head">
+        <h2 class="panel__title">Backward chaining</h2>
+        @if (sepsisQueriedAt) {
+          <time class="result-pane__time">{{ sepsisQueriedAt | date:'HH:mm:ss' }}</time>
+        }
+      </div>
+
+      <div class="result-pane__body backward-pane">
+        <div class="backward-pane__intro">
+          <p class="backward-pane__lead">
+            Direct diagnostic question — the engine works backward through dependency queries only.
+          </p>
+          <button
+            type="button"
+            class="btn btn--secondary btn--block backward-pane__action"
+            (click)="querySepsisSuspected()"
+            [disabled]="backwardLoading || loading">
+            @if (backwardLoading) { <span class="spinner"></span> }
+            Da li pacijent ima sepsu?
+          </button>
+        </div>
+
+        @if (backwardLoading) {
+          <div class="backward-pane__status backward-pane__status--loading">
+            <span class="spinner spinner--lg"></span>
+            <div class="backward-pane__loading-copy">
+              <strong>Evaluating isSepsaSuspected</strong>
+              <span>Recursively checking infection risk and hemodynamic markers…</span>
+            </div>
+          </div>
+        } @else if (sepsisQueryResult) {
+          <div
+            class="backward-pane__verdict"
+            [class.backward-pane__verdict--positive]="sepsisQueryResult.suspected"
+            [class.backward-pane__verdict--negative]="!sepsisQueryResult.suspected">
+            <span class="backward-pane__verdict-icon" aria-hidden="true">
+              {{ sepsisQueryResult.suspected ? '!' : '✓' }}
+            </span>
+            <div class="backward-pane__verdict-copy">
+              <strong>{{ sepsisQueryResult.suspected ? 'Sepsa je sumnjiva' : 'Sepsa nije sumnjiva' }}</strong>
+              <span>{{ sepsisQueryResult.summary }}</span>
+            </div>
+          </div>
+
+          <div class="backward-pane__question-box">
+            <span class="backward-pane__question-label">Upit</span>
+            <p>{{ sepsisQueryResult.question }}</p>
+          </div>
+
+          @if (sepsisQueryResult.reasoningTree; as root) {
+            <div class="backward-pane__tree-head">
+              <h3>Stablo zaključivanja</h3>
+              <span>Rekurzivna provera podupita</span>
+            </div>
+            <div class="reasoning-tree" role="tree" aria-label="Backward chaining reasoning tree">
+              <ng-container *ngTemplateOutlet="reasoningNode; context: { $implicit: root, depth: 0 }"></ng-container>
+            </div>
+          }
+        } @else {
+          <div class="backward-pane__placeholder">
+            <span class="backward-pane__placeholder-icon" aria-hidden="true">?</span>
+            <p>Postavite pitanje da vidite stablo dokaza bez pokretanja forward triage pravila.</p>
+          </div>
+        }
+      </div>
+    </section>
+
+    <ng-template #reasoningNode let-node let-depth="depth">
+        <div
+          class="reasoning-tree__node"
+          role="treeitem"
+          [attr.aria-expanded]="node.children?.length ? true : null"
+          [style.--depth]="depth">
+          <div
+            class="reasoning-tree__row"
+            [class.reasoning-tree__row--true]="node.result"
+            [class.reasoning-tree__row--false]="!node.result"
+            [class.reasoning-tree__row--root]="depth === 0">
+            <span class="reasoning-tree__badge" [attr.aria-label]="node.result ? 'Satisfied' : 'Not satisfied'">
+              {{ node.result ? '✓' : '✗' }}
+            </span>
+            <div class="reasoning-tree__content">
+              <div class="reasoning-tree__title-row">
+                <strong>{{ node.label }}</strong>
+                @if (logicLabel(node.query); as logic) {
+                  <span class="reasoning-tree__logic">{{ logic }}</span>
                 }
               </div>
+              <code class="reasoning-tree__query">{{ node.query }}()</code>
+              <p class="reasoning-tree__explanation">{{ node.explanation }}</p>
+            </div>
+          </div>
+          @if (node.children?.length) {
+            <div class="reasoning-tree__children" role="group">
+              @for (child of node.children; track child.query) {
+                <ng-container *ngTemplateOutlet="reasoningNode; context: { $implicit: child, depth: depth + 1 }"></ng-container>
+              }
             </div>
           }
         </div>
-      </section>
-    </div>
+      </ng-template>
   </main>
 </div>

@@ -47,7 +47,11 @@ public final class RuleInsightFormatter {
             case "Sepsis suspected in diabetic patient":
                 return "Patient has suspected sepsis: fever and tachycardia with diabetes (priority P1, internal medicine).";
             case "SpO2 Rapid Drop":
-                return "Patient has a rapid SpO2 drop: oxygen saturation fell more than 5% within 10 minutes.";
+                return "Patient has a rapid SpO2 drop: oxygen saturation fell more than 5% within 10 minutes, with compensatory tachycardia.";
+            case "Acute Respiratory Crash Prediction - Pulse Collapse":
+            case "Acute Respiratory Crash Prediction - Failed Compensation":
+            case "Acute Respiratory Crash Prediction":
+                return "Acute respiratory crash risk: SpO2 fell more than 5% within 10 minutes without adequate pulse compensation, or with concurrent pulse collapse.";
             default:
                 return "Rule satisfied: " + ruleName;
         }

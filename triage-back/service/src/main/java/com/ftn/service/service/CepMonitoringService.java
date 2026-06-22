@@ -2,19 +2,21 @@ package com.ftn.service.service;
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
+import org.drools.core.time.SessionPseudoClock;
+import org.kie.api.runtime.ClassObjectFilter;
 import org.kie.api.runtime.KieContainer;
 import org.kie.api.runtime.KieSession;
 import org.kie.api.time.SessionClock;
-import org.kie.api.time.SessionPseudoClock;
 import org.springframework.stereotype.Service;
 
 import com.ftn.model.CepAlarm;
-import com.ftn.model.Vitals;
+import com.ftn.model.VitalsEvent;
 import com.ftn.service.dto.CepAlarmDto;
 import com.ftn.service.dto.CepMonitorRequestDto;
 import com.ftn.service.dto.CepMonitorResponseDto;
@@ -30,7 +32,7 @@ public class CepMonitoringService {
         this.kieContainer = kieContainer;
     }
 
-    public CepMonitorResponseDto monitorSpo2Trend(CepMonitorRequestDto request) {
+    public CepMonitorResponseDto monitorVitalsStream(CepMonitorRequestDto request) {
         List<VitalsReadingDto> readings = request.getVitalsReadings();
         if (readings == null || readings.isEmpty()) {
             return new CepMonitorResponseDto();
@@ -38,7 +40,7 @@ public class CepMonitoringService {
 
         KieSession session = null;
         try {
-            session = kieContainer.newKieSession("cepKSession");
+            session = kieContainer.newKieSession("cepKsessionPseudoClock");
             RuleTraceAgendaEventListener listener = new RuleTraceAgendaEventListener();
             session.addEventListener(listener);
 
@@ -55,23 +57,28 @@ public class CepMonitoringService {
 
             for (VitalsReadingDto reading : sortedReadings) {
                 advanceClock(pseudoClock, reading.getMeasuredAt());
-                session.insert(toVitals(reading));
+                session.insert(toVitalsEvent(reading));
                 session.fireAllRules();
             }
 
             CepMonitorResponseDto response = new CepMonitorResponseDto();
             response.setActivatedRules(RuleInsightFormatter.toInsights(
                     listener.getFiredRules(), null, null));
-            response.setAlarms(session.getObjects(o -> o instanceof CepAlarm).stream()
-                    .map(CepAlarm.class::cast)
-                    .map(this::toDto)
-                    .collect(Collectors.toList()));
+            response.setAlarms(collectAlarms(session));
             return response;
         } finally {
             if (session != null) {
                 session.dispose();
             }
         }
+    }
+
+    private List<CepAlarmDto> collectAlarms(KieSession session) {
+        Collection<?> alarmObjects = session.getObjects(new ClassObjectFilter(CepAlarm.class));
+        return alarmObjects.stream()
+                .map(CepAlarm.class::cast)
+                .map(this::toDto)
+                .collect(Collectors.toList());
     }
 
     private void advanceClock(SessionPseudoClock pseudoClock, LocalDateTime measuredAt) {
@@ -83,8 +90,8 @@ public class CepMonitoringService {
         }
     }
 
-    private Vitals toVitals(VitalsReadingDto reading) {
-        return new Vitals(
+    private VitalsEvent toVitalsEvent(VitalsReadingDto reading) {
+        return new VitalsEvent(
                 reading.getTemperature(),
                 reading.getSystolicBloodPressure(),
                 reading.getDiastolicBloodPressure(),
