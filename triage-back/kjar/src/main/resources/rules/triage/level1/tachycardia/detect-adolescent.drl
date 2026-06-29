@@ -1,0 +1,15 @@
+package rules.triage.level1
+
+import com.ftn.model.Patient;
+import com.ftn.model.Symptom;
+import com.ftn.model.SymptomType;
+import com.ftn.model.Vitals;
+
+rule "Detect tachycardia in adolescent"
+when
+    Patient(preterm == false, age >= 13)
+    Vitals(pulse > 100)
+    not Symptom(type == SymptomType.TACHYCARDIA)
+then
+    insert(new Symptom(SymptomType.TACHYCARDIA));
+end

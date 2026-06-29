@@ -42,6 +42,8 @@ public class TriageEngineService {
                     request.getFullName(),
                     request.getAge(),
                     mapChronicConditions(request.getChronicConditions()));
+            patient.setAgeInMonths(request.getAgeInMonths());
+            patient.setPreterm(request.isPreterm());
             Vitals vitals = new Vitals(
                     request.getTemperature(),
                     request.getSystolicBloodPressure(),

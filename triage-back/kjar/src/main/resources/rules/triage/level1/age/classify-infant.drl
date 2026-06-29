@@ -1,0 +1,15 @@
+package rules.triage.level1
+
+import com.ftn.model.AgeGroup;
+import com.ftn.model.Patient;
+
+rule "Classify infant patient"
+    salience 1000
+when
+    $patient : Patient(ageGroup == null, preterm == false, age == 0)
+    eval($patient.getAgeInMonths() == null || $patient.getAgeInMonths() >= 1)
+then
+    modify($patient) {
+        setAgeGroup(AgeGroup.INFANT);
+    }
+end

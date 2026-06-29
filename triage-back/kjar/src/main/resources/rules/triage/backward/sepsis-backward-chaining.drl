@@ -1,67 +1,62 @@
 package rules.triage.backward
 
-import com.ftn.model.AgeCategory
 import com.ftn.model.Patient
 import com.ftn.model.SepsisSuspectedAnswer
 import com.ftn.model.Symptom
 import com.ftn.model.SymptomType
+import com.ftn.model.VitalSignThresholds
 import com.ftn.model.Vitals
 
-query hasFever
-    $p : Patient()
-    $v : Vitals()
-    eval(
-        ($p.getAgeCategory() == AgeCategory.CHILD && $v.getTemperature() > 37.5)
-        || ($p.getAgeCategory() == AgeCategory.ADULT && $v.getTemperature() > 38.0)
-        || ($p.getAgeCategory() == AgeCategory.SENIOR && $v.getTemperature() > 37.8)
-    )
-end
-
-query hasConfusion
-    exists Symptom(type == SymptomType.CONFUSION)
-end
-
-query hasTachycardia
-    $p : Patient()
-    $v : Vitals()
-    eval(
-        ($p.getAgeCategory() == AgeCategory.SENIOR && $v.getPulse() > 90)
-        || ($p.getAgeCategory() != null && $p.getAgeCategory() != AgeCategory.SENIOR && $v.getPulse() > 100)
-    )
-end
-
-query hasHypotension
-    $p : Patient()
-    $v : Vitals()
-    eval(
-        ($p.getAgeCategory() == AgeCategory.CHILD && $v.getSystolicBloodPressure() < 90)
-        || ($p.getAgeCategory() == AgeCategory.ADULT && $v.getSystolicBloodPressure() < 100)
-        || ($p.getAgeCategory() == AgeCategory.SENIOR && $v.getSystolicBloodPressure() < 110)
-    )
-end
-
-query hasInfectionRisk
+query prove( String goal )
     (
-        hasFever() or
-        hasConfusion()
+        $p : Patient() and
+        $v : Vitals() and
+        eval(goal == "hasFever" && VitalSignThresholds.isFever($p, $v.getTemperature()))
     )
-end
-
-query hasHemodynamicInstability
-    hasTachycardia()
-    hasHypotension()
-end
-
-query isSepsaSuspected
-    hasInfectionRisk()
-    hasHemodynamicInstability()
+    or
+    (
+        eval(goal == "hasConfusion") and
+        exists Symptom(type == SymptomType.CONFUSION)
+    )
+    or
+    (
+        $p : Patient() and
+        $v : Vitals() and
+        eval(goal == "hasTachycardia" && VitalSignThresholds.isTachycardia($p, $v.getPulse()))
+    )
+    or
+    (
+        $p : Patient() and
+        $v : Vitals() and
+        eval(goal == "hasHypotension" && VitalSignThresholds.isHypotension($p, $v.getSystolicBloodPressure()))
+    )
+    or
+    (
+        eval(goal == "hasInfectionRisk") and
+        (
+            prove("hasFever";) or
+            prove("hasConfusion";)
+        )
+    )
+    or
+    (
+        eval(goal == "hasHemodynamicInstability") and
+        prove("hasTachycardia";) and
+        prove("hasHypotension";)
+    )
+    or
+    (
+        eval(goal == "isSepsaSuspected") and
+        prove("hasInfectionRisk";) and
+        prove("hasHemodynamicInstability";)
+    )
 end
 
 rule "Answer isSepsaSuspected query"
     agenda-group "backward"
 when
     String(this == "isSepsaSuspected")
-    isSepsaSuspected()
+    prove("isSepsaSuspected";)
     not SepsisSuspectedAnswer()
 then
     insert(new SepsisSuspectedAnswer(
@@ -74,7 +69,7 @@ rule "Answer isSepsaSuspected query - negative"
     salience -10
 when
     String(this == "isSepsaSuspected")
-    not isSepsaSuspected()
+    not prove("isSepsaSuspected";)
     not SepsisSuspectedAnswer()
 then
     insert(new SepsisSuspectedAnswer(

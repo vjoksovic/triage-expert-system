@@ -1,6 +1,5 @@
 package rules.triage.level3
 
-import com.ftn.model.AgeCategory;
 import com.ftn.model.ChronicCondition;
 import com.ftn.model.Diagnosis;
 import com.ftn.model.DiagnosisType;
@@ -11,17 +10,18 @@ import com.ftn.model.SymptomType;
 import com.ftn.model.TriageResult;
 import com.ftn.model.Ward;
 
-rule "Triage respiratory failure senior without comorbidity"
-    salience 50
+rule "Triage sepsis without comorbidity"
+    salience 90
 when
-    Diagnosis(type == DiagnosisType.RESPIRATORY_FAILURE)
-    exists Symptom(type == SymptomType.TACHYCARDIA)
+    Diagnosis(type == DiagnosisType.SEPSIS_SUSPECTED)
+    exists Symptom(type == SymptomType.HYPOTENSION)
     Patient(
-        ageCategory == AgeCategory.SENIOR,
         chronicConditions not contains ChronicCondition.DIABETES,
         chronicConditions not contains ChronicCondition.COPD
     )
     not TriageResult()
 then
-    insert(new TriageResult(Priority.P2, Ward.PULMOLOGY));
+    TriageResult result = new TriageResult(Priority.P1, Ward.INFECTOLOGY);
+    result.addWarning("Sepsis risk - obtain blood cultures immediately and start antibiotics.");
+    insert(result);
 end

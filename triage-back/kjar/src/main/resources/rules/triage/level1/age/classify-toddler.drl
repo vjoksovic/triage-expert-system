@@ -1,0 +1,14 @@
+package rules.triage.level1
+
+import com.ftn.model.AgeGroup;
+import com.ftn.model.Patient;
+
+rule "Classify toddler patient"
+    salience 1000
+when
+    $patient : Patient(ageGroup == null, preterm == false, age >= 1, age <= 2)
+then
+    modify($patient) {
+        setAgeGroup(AgeGroup.TODDLER);
+    }
+end

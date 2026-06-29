@@ -1,0 +1,31 @@
+<div
+  class="proof-node"
+  [class.proof-node--root]="depth === 0"
+  [class.proof-node--pass]="node.result"
+  [class.proof-node--fail]="!node.result">
+  <div class="proof-node__row">
+    <span class="proof-node__indicator" [attr.aria-label]="node.result ? 'Proved' : 'Not proved'"></span>
+    <div class="proof-node__main">
+      <div class="proof-node__title">
+        <span class="proof-node__label">{{ goalLabelFn(node.query) }}</span>
+        @if (logicLabelFn(node.query); as logic) {
+          <span class="proof-node__logic">{{ logic }}</span>
+        }
+      </div>
+      <code class="proof-node__query">prove("{{ node.query }}")</code>
+      <p class="proof-node__detail">{{ node.explanation }}</p>
+    </div>
+  </div>
+
+  @if (node.children.length) {
+    <div class="proof-node__children">
+      @for (child of node.children; track child.query) {
+        <app-proof-tree-node
+          [node]="child"
+          [depth]="depth + 1"
+          [goalLabelFn]="goalLabelFn"
+          [logicLabelFn]="logicLabelFn" />
+      }
+    </div>
+  }
+</div>

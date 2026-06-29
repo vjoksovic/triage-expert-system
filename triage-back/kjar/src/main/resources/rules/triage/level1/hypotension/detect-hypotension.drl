@@ -1,15 +1,16 @@
 package rules.triage.level1
 
-import com.ftn.model.AgeCategory;
 import com.ftn.model.Patient;
 import com.ftn.model.Symptom;
 import com.ftn.model.SymptomType;
+import com.ftn.model.VitalSignThresholds;
 import com.ftn.model.Vitals;
 
-rule "Detect hypotension in senior"
+rule "Detect hypotension"
 when
-    Patient(ageCategory == AgeCategory.SENIOR)
-    Vitals(systolicBloodPressure < 110)
+    $patient : Patient()
+    $vitals : Vitals($systolicBloodPressure : systolicBloodPressure)
+    eval(VitalSignThresholds.isHypotension($patient, $systolicBloodPressure))
     not Symptom(type == SymptomType.HYPOTENSION)
 then
     insert(new Symptom(SymptomType.HYPOTENSION));

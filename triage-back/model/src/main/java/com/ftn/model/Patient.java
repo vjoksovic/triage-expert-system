@@ -10,7 +10,9 @@ public class Patient implements Serializable {
 
     private String fullName;
     private int age;
-    private AgeCategory ageCategory;
+    private Integer ageInMonths;
+    private boolean preterm;
+    private AgeGroup ageGroup;
     private Set<ChronicCondition> chronicConditions = new HashSet<>();
 
     public Patient() {
@@ -38,12 +40,28 @@ public class Patient implements Serializable {
         this.age = age;
     }
 
-    public AgeCategory getAgeCategory() {
-        return ageCategory;
+    public Integer getAgeInMonths() {
+        return ageInMonths;
     }
 
-    public void setAgeCategory(AgeCategory ageCategory) {
-        this.ageCategory = ageCategory;
+    public void setAgeInMonths(Integer ageInMonths) {
+        this.ageInMonths = ageInMonths;
+    }
+
+    public boolean isPreterm() {
+        return preterm;
+    }
+
+    public void setPreterm(boolean preterm) {
+        this.preterm = preterm;
+    }
+
+    public AgeGroup getAgeGroup() {
+        return ageGroup;
+    }
+
+    public void setAgeGroup(AgeGroup ageGroup) {
+        this.ageGroup = ageGroup;
     }
 
     public Set<ChronicCondition> getChronicConditions() {
@@ -56,7 +74,7 @@ public class Patient implements Serializable {
 
     @Override
     public int hashCode() {
-        return Objects.hash(age, ageCategory, chronicConditions, fullName);
+        return Objects.hash(age, ageGroup, ageInMonths, chronicConditions, fullName, preterm);
     }
 
     @Override
@@ -69,14 +87,16 @@ public class Patient implements Serializable {
         }
         Patient other = (Patient) obj;
         return age == other.age
+                && preterm == other.preterm
                 && Objects.equals(fullName, other.fullName)
-                && ageCategory == other.ageCategory
+                && ageGroup == other.ageGroup
+                && Objects.equals(ageInMonths, other.ageInMonths)
                 && Objects.equals(chronicConditions, other.chronicConditions);
     }
 
     @Override
     public String toString() {
-        return "Patient [fullName=" + fullName + ", age=" + age + ", ageCategory=" + ageCategory
+        return "Patient [fullName=" + fullName + ", age=" + age + ", ageGroup=" + ageGroup
                 + ", chronicConditions=" + chronicConditions + "]";
     }
 }

@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
+import { BackwardChainingPanelComponent } from './backward-chaining-panel/backward-chaining-panel.component';
 import { TriageApiService } from './triage-api.service';
 import {
   CepMonitorResponse,
@@ -17,7 +18,7 @@ type PriorityLevel = 'P1' | 'P2' | 'P3' | 'P4' | 'P5';
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, BackwardChainingPanelComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
@@ -107,15 +108,6 @@ export class AppComponent {
 
   toggleClinicalReasoning(): void {
     this.activeTab.clinicalReasoningCollapsed = !this.activeTab.clinicalReasoningCollapsed;
-  }
-
-  logicLabel(query: string): string | null {
-    const labels: Record<string, string> = {
-      isSepsaSuspected: 'AND',
-      hasInfectionRisk: 'OR',
-      hasHemodynamicInstability: 'AND'
-    };
-    return labels[query] ?? null;
   }
 
   tabLabel(tab: PatientTab): string {
@@ -342,16 +334,19 @@ export class AppComponent {
   }
 
   private demoModel(): TriageRequest {
+    // Adult thresholds: fever >38°C, tachycardia >100, hypotension <100 mmHg.
+    // Triggers: level-1 vitals → sepsis preliminary → P1 "Triage sepsis with diabetes".
+    // Backward chaining: fever + tachycardia + hypotension → suspected sepsis.
     return {
-      fullName: 'John Smith',
+      fullName: 'Elena Markovic (P1 demo)',
       age: 68,
-      temperature: 38.9,
-      systolicBloodPressure: 95,
-      diastolicBloodPressure: 60,
-      pulse: 118,
+      temperature: 39.2,
+      systolicBloodPressure: 88,
+      diastolicBloodPressure: 54,
+      pulse: 128,
       spo2: 91,
       chronicConditions: ['DIABETES'],
-      symptoms: ['DISPNEA', 'CONFUSION']
+      symptoms: ['CONFUSION']
     };
   }
 

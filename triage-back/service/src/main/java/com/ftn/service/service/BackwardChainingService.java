@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -25,9 +26,25 @@ import com.ftn.service.engine.BackwardChainingFormatter;
 
 @Service
 public class BackwardChainingService {
+    private static final String SEPSIS_GOAL = "isSepsaSuspected";
     private static final String SEPSIS_QUERY = "isSepsaSuspected";
+    private static final String PROVE_QUERY = "prove";
     private static final String SEPSIS_QUESTION =
-            "Da li trenutni profil pacijenta sugerise pocetak sepse?";
+            "Does the current patient profile suggest suspected sepsis?";
+
+    private static final Map<String, List<String>> GOAL_CHILDREN = Map.of(
+            SEPSIS_GOAL, List.of("hasInfectionRisk", "hasHemodynamicInstability"),
+            "hasInfectionRisk", List.of("hasFever", "hasConfusion"),
+            "hasHemodynamicInstability", List.of("hasTachycardia", "hasHypotension"));
+
+    private static final Map<String, String> GOAL_LABELS = Map.of(
+            SEPSIS_GOAL, "Suspected sepsis",
+            "hasInfectionRisk", "Infection risk",
+            "hasHemodynamicInstability", "Hemodynamic instability",
+            "hasFever", "Fever",
+            "hasConfusion", "Confusion",
+            "hasTachycardia", "Tachycardia",
+            "hasHypotension", "Hypotension");
 
     private final KieContainer kieContainer;
 
@@ -44,6 +61,8 @@ public class BackwardChainingService {
                     request.getFullName(),
                     request.getAge(),
                     mapChronicConditions(request.getChronicConditions()));
+            patient.setAgeInMonths(request.getAgeInMonths());
+            patient.setPreterm(request.isPreterm());
             Vitals vitals = new Vitals(
                     request.getTemperature(),
                     request.getSystolicBloodPressure(),
@@ -72,7 +91,7 @@ public class BackwardChainingService {
             response.setQuestion(SEPSIS_QUESTION);
             response.setSuspected(answer.isSuspected());
             response.setSummary(answer.getMessage());
-            response.setReasoningTree(buildSepsisReasoningTree(session, patient, vitals));
+            response.setReasoningTree(buildGoalNode(session, patient, vitals, SEPSIS_GOAL));
             return response;
         } finally {
             if (session != null) {
@@ -81,86 +100,48 @@ public class BackwardChainingService {
         }
     }
 
-    private BackwardChainingNodeDto buildSepsisReasoningTree(KieSession session, Patient patient, Vitals vitals) {
-        BackwardChainingNodeDto infectionRisk = buildInfectionRiskNode(session, patient, vitals);
-        BackwardChainingNodeDto hemodynamicInstability = buildHemodynamicInstabilityNode(session, patient, vitals);
-        boolean suspected = infectionRisk.isResult() && hemodynamicInstability.isResult();
-
-        BackwardChainingNodeDto root = new BackwardChainingNodeDto();
-        root.setQuery(SEPSIS_QUERY);
-        root.setLabel("Sepsa suspektna");
-        root.setResult(suspected);
-        root.setExplanation(BackwardChainingFormatter.explainSepsisSuspected(suspected));
-        root.setChildren(List.of(infectionRisk, hemodynamicInstability));
-        return root;
-    }
-
-    private BackwardChainingNodeDto buildInfectionRiskNode(KieSession session, Patient patient, Vitals vitals) {
-        BackwardChainingNodeDto fever = buildFeverNode(session, patient, vitals);
-        BackwardChainingNodeDto confusion = buildConfusionNode(session);
-        boolean infectionRisk = fever.isResult() || confusion.isResult();
+    private BackwardChainingNodeDto buildGoalNode(KieSession session, Patient patient, Vitals vitals, String goal) {
+        boolean result = provesGoal(session, goal);
+        List<String> childGoals = GOAL_CHILDREN.get(goal);
 
         BackwardChainingNodeDto node = new BackwardChainingNodeDto();
-        node.setQuery("hasInfectionRisk");
-        node.setLabel("Rizik od infekcije");
-        node.setResult(infectionRisk);
-        node.setExplanation(BackwardChainingFormatter.explainInfectionRisk(infectionRisk));
-        node.setChildren(List.of(fever, confusion));
-        return node;
-    }
-
-    private BackwardChainingNodeDto buildHemodynamicInstabilityNode(
-            KieSession session,
-            Patient patient,
-            Vitals vitals) {
-        BackwardChainingNodeDto tachycardia = buildTachycardiaNode(session, patient, vitals);
-        BackwardChainingNodeDto hypotension = buildHypotensionNode(session, patient, vitals);
-        boolean hemodynamicInstability = tachycardia.isResult() && hypotension.isResult();
-
-        BackwardChainingNodeDto node = new BackwardChainingNodeDto();
-        node.setQuery("hasHemodynamicInstability");
-        node.setLabel("Hemodinamska nestabilnost");
-        node.setResult(hemodynamicInstability);
-        node.setExplanation(BackwardChainingFormatter.explainHemodynamicInstability(hemodynamicInstability));
-        node.setChildren(List.of(tachycardia, hypotension));
-        return node;
-    }
-
-    private BackwardChainingNodeDto buildFeverNode(KieSession session, Patient patient, Vitals vitals) {
-        boolean result = matchesQuery(session, "hasFever");
-        return leafNode("hasFever", "Groznica", result,
-                BackwardChainingFormatter.explainFever(patient, vitals, result));
-    }
-
-    private BackwardChainingNodeDto buildConfusionNode(KieSession session) {
-        boolean result = matchesQuery(session, "hasConfusion");
-        return leafNode("hasConfusion", "Konfuzija", result,
-                BackwardChainingFormatter.explainConfusion(result));
-    }
-
-    private BackwardChainingNodeDto buildTachycardiaNode(KieSession session, Patient patient, Vitals vitals) {
-        boolean result = matchesQuery(session, "hasTachycardia");
-        return leafNode("hasTachycardia", "Tahikardija", result,
-                BackwardChainingFormatter.explainTachycardia(patient, vitals, result));
-    }
-
-    private BackwardChainingNodeDto buildHypotensionNode(KieSession session, Patient patient, Vitals vitals) {
-        boolean result = matchesQuery(session, "hasHypotension");
-        return leafNode("hasHypotension", "Hipotenzija", result,
-                BackwardChainingFormatter.explainHypotension(patient, vitals, result));
-    }
-
-    private BackwardChainingNodeDto leafNode(String queryName, String label, boolean result, String explanation) {
-        BackwardChainingNodeDto node = new BackwardChainingNodeDto();
-        node.setQuery(queryName);
-        node.setLabel(label);
+        node.setQuery(goal);
+        node.setLabel(GOAL_LABELS.getOrDefault(goal, goal));
         node.setResult(result);
-        node.setExplanation(explanation);
+        node.setExplanation(explainGoal(goal, patient, vitals, result));
+
+        if (childGoals != null) {
+            node.setChildren(childGoals.stream()
+                    .map(childGoal -> buildGoalNode(session, patient, vitals, childGoal))
+                    .collect(Collectors.toList()));
+        }
+
         return node;
     }
 
-    private boolean matchesQuery(KieSession session, String queryName) {
-        QueryResults results = session.getQueryResults(queryName);
+    private String explainGoal(String goal, Patient patient, Vitals vitals, boolean result) {
+        switch (goal) {
+            case "isSepsaSuspected":
+                return BackwardChainingFormatter.explainSepsisSuspected(result);
+            case "hasInfectionRisk":
+                return BackwardChainingFormatter.explainInfectionRisk(result);
+            case "hasHemodynamicInstability":
+                return BackwardChainingFormatter.explainHemodynamicInstability(result);
+            case "hasFever":
+                return BackwardChainingFormatter.explainFever(patient, vitals, result);
+            case "hasConfusion":
+                return BackwardChainingFormatter.explainConfusion(result);
+            case "hasTachycardia":
+                return BackwardChainingFormatter.explainTachycardia(patient, vitals, result);
+            case "hasHypotension":
+                return BackwardChainingFormatter.explainHypotension(patient, vitals, result);
+            default:
+                return result ? "Goal satisfied: " + goal : "Goal not satisfied: " + goal;
+        }
+    }
+
+    private boolean provesGoal(KieSession session, String goal) {
+        QueryResults results = session.getQueryResults(PROVE_QUERY, goal);
         return results.iterator().hasNext();
     }
 

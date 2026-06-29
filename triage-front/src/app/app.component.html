@@ -340,109 +340,11 @@
       </div>
     </div>
 
-    <section
-      class="panel panel--result panel--backward-outcome"
-      [class.panel--backward-outcome--active]="sepsisQueryResult !== null || backwardLoading">
-      <div class="result-pane__head">
-        <h2 class="panel__title">Backward chaining</h2>
-        @if (sepsisQueriedAt) {
-          <time class="result-pane__time">{{ sepsisQueriedAt | date:'HH:mm:ss' }}</time>
-        }
-      </div>
-
-      <div class="result-pane__body backward-pane">
-        <div class="backward-pane__intro">
-          <p class="backward-pane__lead">
-            Direct diagnostic question — the engine works backward through dependency queries only.
-          </p>
-          <button
-            type="button"
-            class="btn btn--secondary btn--block backward-pane__action"
-            (click)="querySepsisSuspected()"
-            [disabled]="backwardLoading || loading">
-            @if (backwardLoading) { <span class="spinner"></span> }
-            Da li pacijent ima sepsu?
-          </button>
-        </div>
-
-        @if (backwardLoading) {
-          <div class="backward-pane__status backward-pane__status--loading">
-            <span class="spinner spinner--lg"></span>
-            <div class="backward-pane__loading-copy">
-              <strong>Evaluating isSepsaSuspected</strong>
-              <span>Recursively checking infection risk and hemodynamic markers…</span>
-            </div>
-          </div>
-        } @else if (sepsisQueryResult) {
-          <div
-            class="backward-pane__verdict"
-            [class.backward-pane__verdict--positive]="sepsisQueryResult.suspected"
-            [class.backward-pane__verdict--negative]="!sepsisQueryResult.suspected">
-            <span class="backward-pane__verdict-icon" aria-hidden="true">
-              {{ sepsisQueryResult.suspected ? '!' : '✓' }}
-            </span>
-            <div class="backward-pane__verdict-copy">
-              <strong>{{ sepsisQueryResult.suspected ? 'Sepsa je sumnjiva' : 'Sepsa nije sumnjiva' }}</strong>
-              <span>{{ sepsisQueryResult.summary }}</span>
-            </div>
-          </div>
-
-          <div class="backward-pane__question-box">
-            <span class="backward-pane__question-label">Upit</span>
-            <p>{{ sepsisQueryResult.question }}</p>
-          </div>
-
-          @if (sepsisQueryResult.reasoningTree; as root) {
-            <div class="backward-pane__tree-head">
-              <h3>Stablo zaključivanja</h3>
-              <span>Rekurzivna provera podupita</span>
-            </div>
-            <div class="reasoning-tree" role="tree" aria-label="Backward chaining reasoning tree">
-              <ng-container *ngTemplateOutlet="reasoningNode; context: { $implicit: root, depth: 0 }"></ng-container>
-            </div>
-          }
-        } @else {
-          <div class="backward-pane__placeholder">
-            <span class="backward-pane__placeholder-icon" aria-hidden="true">?</span>
-            <p>Postavite pitanje da vidite stablo dokaza bez pokretanja forward triage pravila.</p>
-          </div>
-        }
-      </div>
-    </section>
-
-    <ng-template #reasoningNode let-node let-depth="depth">
-        <div
-          class="reasoning-tree__node"
-          role="treeitem"
-          [attr.aria-expanded]="node.children?.length ? true : null"
-          [style.--depth]="depth">
-          <div
-            class="reasoning-tree__row"
-            [class.reasoning-tree__row--true]="node.result"
-            [class.reasoning-tree__row--false]="!node.result"
-            [class.reasoning-tree__row--root]="depth === 0">
-            <span class="reasoning-tree__badge" [attr.aria-label]="node.result ? 'Satisfied' : 'Not satisfied'">
-              {{ node.result ? '✓' : '✗' }}
-            </span>
-            <div class="reasoning-tree__content">
-              <div class="reasoning-tree__title-row">
-                <strong>{{ node.label }}</strong>
-                @if (logicLabel(node.query); as logic) {
-                  <span class="reasoning-tree__logic">{{ logic }}</span>
-                }
-              </div>
-              <code class="reasoning-tree__query">{{ node.query }}()</code>
-              <p class="reasoning-tree__explanation">{{ node.explanation }}</p>
-            </div>
-          </div>
-          @if (node.children?.length) {
-            <div class="reasoning-tree__children" role="group">
-              @for (child of node.children; track child.query) {
-                <ng-container *ngTemplateOutlet="reasoningNode; context: { $implicit: child, depth: depth + 1 }"></ng-container>
-              }
-            </div>
-          }
-        </div>
-      </ng-template>
+    <app-backward-chaining-panel
+      [loading]="backwardLoading"
+      [disabled]="loading"
+      [result]="sepsisQueryResult"
+      [queriedAt]="sepsisQueriedAt"
+      (ask)="querySepsisSuspected()" />
   </main>
 </div>

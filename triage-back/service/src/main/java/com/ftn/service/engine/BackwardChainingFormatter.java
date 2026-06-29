@@ -1,7 +1,8 @@
 package com.ftn.service.engine;
 
-import com.ftn.model.AgeCategory;
+import com.ftn.model.AgeGroup;
 import com.ftn.model.Patient;
+import com.ftn.model.VitalSignThresholds;
 import com.ftn.model.Vitals;
 
 public final class BackwardChainingFormatter {
@@ -13,13 +14,13 @@ public final class BackwardChainingFormatter {
         if (!result) {
             return "Temperature is within the age-specific limit — fever not detected.";
         }
-        AgeCategory category = patient.getAgeCategory();
-        double limit = feverLimit(category);
+        AgeGroup group = VitalSignThresholds.resolveGroup(patient);
+        double limit = VitalSignThresholds.feverThreshold(group);
         return String.format(
                 "Fever detected: temperature %.1f °C exceeds the %.1f °C threshold for %s.",
                 vitals.getTemperature(),
                 limit,
-                formatAgeCategory(category));
+                VitalSignThresholds.formatGroup(group));
     }
 
     public static String explainConfusion(boolean result) {
@@ -33,26 +34,26 @@ public final class BackwardChainingFormatter {
         if (!result) {
             return "Pulse is within the age-specific limit — tachycardia not detected.";
         }
-        AgeCategory category = patient.getAgeCategory();
-        int limit = tachycardiaLimit(category);
+        AgeGroup group = VitalSignThresholds.resolveGroup(patient);
+        int limit = VitalSignThresholds.tachycardiaThreshold(group);
         return String.format(
                 "Tachycardia detected: pulse %d/min exceeds the %d/min threshold for %s.",
                 vitals.getPulse(),
                 limit,
-                formatAgeCategory(category));
+                VitalSignThresholds.formatGroup(group));
     }
 
     public static String explainHypotension(Patient patient, Vitals vitals, boolean result) {
         if (!result) {
             return "Systolic blood pressure is within the age-specific limit — hypotension not detected.";
         }
-        AgeCategory category = patient.getAgeCategory();
-        int limit = hypotensionLimit(category);
+        AgeGroup group = VitalSignThresholds.resolveGroup(patient);
+        int limit = VitalSignThresholds.hypotensionThreshold(group);
         return String.format(
                 "Hypotension detected: systolic BP %d mmHg is below the %d mmHg threshold for %s.",
                 vitals.getSystolicBloodPressure(),
                 limit,
-                formatAgeCategory(category));
+                VitalSignThresholds.formatGroup(group));
     }
 
     public static String explainInfectionRisk(boolean result) {
@@ -74,46 +75,5 @@ public final class BackwardChainingFormatter {
             return "Patient profile does not meet criteria for suspected sepsis.";
         }
         return "Patient profile meets criteria for suspected sepsis — infection risk with hemodynamic instability.";
-    }
-
-    private static double feverLimit(AgeCategory category) {
-        if (category == AgeCategory.CHILD) {
-            return 37.5;
-        }
-        if (category == AgeCategory.SENIOR) {
-            return 37.8;
-        }
-        return 38.0;
-    }
-
-    private static int tachycardiaLimit(AgeCategory category) {
-        if (category == AgeCategory.SENIOR) {
-            return 90;
-        }
-        return 100;
-    }
-
-    private static int hypotensionLimit(AgeCategory category) {
-        if (category == AgeCategory.CHILD) {
-            return 90;
-        }
-        if (category == AgeCategory.SENIOR) {
-            return 110;
-        }
-        return 100;
-    }
-
-    private static String formatAgeCategory(AgeCategory category) {
-        if (category == null) {
-            return "the patient's age group";
-        }
-        switch (category) {
-            case CHILD:
-                return "a child";
-            case SENIOR:
-                return "a senior";
-            default:
-                return "an adult";
-        }
     }
 }

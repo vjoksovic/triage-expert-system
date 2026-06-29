@@ -6,6 +6,8 @@ import java.util.List;
 public class TriageRequestDto {
     private String fullName;
     private int age;
+    private Integer ageInMonths;
+    private boolean preterm;
     private double temperature;
     private int systolicBloodPressure;
     private int diastolicBloodPressure;
@@ -28,6 +30,22 @@ public class TriageRequestDto {
 
     public void setAge(int age) {
         this.age = age;
+    }
+
+    public Integer getAgeInMonths() {
+        return ageInMonths;
+    }
+
+    public void setAgeInMonths(Integer ageInMonths) {
+        this.ageInMonths = ageInMonths;
+    }
+
+    public boolean isPreterm() {
+        return preterm;
+    }
+
+    public void setPreterm(boolean preterm) {
+        this.preterm = preterm;
     }
 
     public double getTemperature() {

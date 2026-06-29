@@ -1,6 +1,5 @@
 package rules.triage.level3
 
-import com.ftn.model.AgeCategory;
 import com.ftn.model.ChronicCondition;
 import com.ftn.model.Diagnosis;
 import com.ftn.model.DiagnosisType;
@@ -11,13 +10,12 @@ import com.ftn.model.SymptomType;
 import com.ftn.model.TriageResult;
 import com.ftn.model.Ward;
 
-rule "Triage respiratory failure adult without comorbidity"
-    salience 50
+rule "Triage respiratory failure without comorbidity"
+    salience 90
 when
     Diagnosis(type == DiagnosisType.RESPIRATORY_FAILURE)
     exists Symptom(type == SymptomType.TACHYCARDIA)
     Patient(
-        ageCategory == AgeCategory.ADULT,
         chronicConditions not contains ChronicCondition.DIABETES,
         chronicConditions not contains ChronicCondition.COPD
     )

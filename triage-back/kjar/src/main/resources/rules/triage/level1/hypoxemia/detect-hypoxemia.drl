@@ -1,15 +1,16 @@
 package rules.triage.level1
 
-import com.ftn.model.AgeCategory;
 import com.ftn.model.Patient;
 import com.ftn.model.Symptom;
 import com.ftn.model.SymptomType;
+import com.ftn.model.VitalSignThresholds;
 import com.ftn.model.Vitals;
 
-rule "Detect hypoxemia in senior"
+rule "Detect hypoxemia"
 when
-    Patient(ageCategory == AgeCategory.SENIOR)
-    Vitals(spo2 < 92)
+    $patient : Patient()
+    $vitals : Vitals($spo2 : spo2)
+    eval(VitalSignThresholds.isHypoxemia($patient, $spo2))
     not Symptom(type == SymptomType.HYPOXEMIA)
 then
     insert(new Symptom(SymptomType.HYPOXEMIA));

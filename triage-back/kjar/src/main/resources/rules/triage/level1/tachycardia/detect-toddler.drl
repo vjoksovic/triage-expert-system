@@ -1,15 +1,14 @@
 package rules.triage.level1
 
-import com.ftn.model.AgeCategory;
 import com.ftn.model.Patient;
 import com.ftn.model.Symptom;
 import com.ftn.model.SymptomType;
 import com.ftn.model.Vitals;
 
-rule "Detect tachycardia in adult"
+rule "Detect tachycardia in toddler"
 when
-    Patient(ageCategory == AgeCategory.ADULT)
-    Vitals(pulse > 100)
+    Patient(preterm == false, age >= 1, age <= 2)
+    Vitals(pulse > 130)
     not Symptom(type == SymptomType.TACHYCARDIA)
 then
     insert(new Symptom(SymptomType.TACHYCARDIA));

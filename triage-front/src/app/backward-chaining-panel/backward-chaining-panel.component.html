@@ -1,0 +1,57 @@
+<section
+  class="panel panel--result panel--backward"
+  [class.panel--alarm]="result?.suspected === true">
+  <div class="result-pane__head">
+    <h2 class="panel__title">Backward chaining</h2>
+    @if (queriedAt) {
+      <time class="result-pane__time">{{ queriedAt | date:'HH:mm:ss' }}</time>
+    }
+  </div>
+
+  <div class="result-pane__body">
+    <p class="panel__hint">
+      Ask whether the current patient profile suggests sepsis.
+    </p>
+
+    <button
+      type="button"
+      class="btn btn--primary btn--block"
+      (click)="onAsk()"
+      [disabled]="loading || disabled">
+      @if (loading) {
+        <span class="spinner"></span>
+      }
+      Run sepsis proof
+    </button>
+
+    @if (loading) {
+      <div class="result-empty">
+        <span class="spinner spinner--lg"></span>
+        <p>Proving goal — checking infection risk and hemodynamic markers…</p>
+      </div>
+    } @else if (result) {
+      <div
+        class="bc-verdict"
+        [class.bc-verdict--alert]="result.suspected"
+        [class.bc-verdict--clear]="!result.suspected">
+        <span class="bc-verdict__status">{{ result.suspected ? 'Suspected' : 'Not suspected' }}</span>
+        <p class="bc-verdict__summary">{{ result.summary }}</p>
+      </div>
+
+      @if (result.reasoningTree; as root) {
+        <div class="detail-section detail-section--reasoning" aria-label="Proof tree">
+          <h4>Proof tree <span class="bc-tree__meta">recursive <code>prove(goal)</code></span></h4>
+          <app-proof-tree-node
+            [node]="root"
+            [depth]="0"
+            [goalLabelFn]="goalLabel.bind(this)"
+            [logicLabelFn]="logicLabel.bind(this)" />
+        </div>
+      }
+    } @else {
+      <div class="result-empty">
+        <p>No proof yet. Run the query to see how each sub-goal is evaluated.</p>
+      </div>
+    }
+  </div>
+</section>
