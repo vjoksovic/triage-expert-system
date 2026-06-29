@@ -42,6 +42,42 @@
     </button>
   </nav>
 
+  @if (departmentLoad) {
+    <section
+      class="department-load"
+      [class.department-load--alert]="departmentLoad.overloaded"
+      aria-label="Department P1 load">
+      <div class="department-load__summary">
+        <strong>Department load</strong>
+        <span>
+          {{ departmentLoad.p1Count }} / {{ departmentLoad.overloadThreshold }} P1 patients admitted
+        </span>
+        @if (departmentLoad.overloaded) {
+          <span class="department-load__badge">Overloaded</span>
+        }
+      </div>
+      @if (departmentLoad.activeP1Cases.length) {
+        <ul class="department-load__cases">
+          @for (caseEntry of departmentLoad.activeP1Cases; track caseEntry.caseId) {
+            <li>
+              <span>{{ caseEntry.patientName }}</span>
+              <span>{{ wardLabel(caseEntry.ward) }}</span>
+            </li>
+          }
+        </ul>
+      } @else {
+        <p class="department-load__empty">No P1 patients currently admitted.</p>
+      }
+      @if (departmentLoad.p1Count >= departmentLoad.overloadThreshold) {
+        <p class="department-load__hint">
+          The next incoming P1 patient will be redirected to the secondary facility.
+        </p>
+      }
+    </section>
+  } @else if (departmentLoadError) {
+    <div class="toast toast--error" role="alert">{{ departmentLoadError }}</div>
+  }
+
   @if (error || cepError || backwardError) {
     <div class="alerts">
       @if (error) {
@@ -205,8 +241,18 @@
             </div>
             <div class="stat stat--full">
               <span>Ward</span>
-              <strong>{{ wardLabel(result.ward) }}</strong>
+              <strong>{{ wardLabel(result.ward, result.redirectedToSecondary) }}</strong>
             </div>
+            @if (result.redirectedToSecondary && result.originalWard) {
+              <div class="redirect-box">
+                <strong>Secondary redirect</strong>
+                <p>
+                  Originally routed to {{ wardLabel(result.originalWard) }}.
+                  Department overload rule moved this patient to
+                  {{ wardLabel(result.ward, true) }}.
+                </p>
+              </div>
+            }
             @if (result.warnings.length) {
               <div class="warn-box">
                 @for (warning of result.warnings; track warning) {

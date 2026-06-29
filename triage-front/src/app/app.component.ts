@@ -1,11 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { BackwardChainingPanelComponent } from './backward-chaining-panel/backward-chaining-panel.component';
 import { TriageApiService } from './triage-api.service';
 import {
   CepMonitorResponse,
+  DepartmentLoad,
   PatientTab,
   SepsisQueryResponse,
   TriagedVitalsSnapshot,
@@ -22,7 +23,7 @@ type PriorityLevel = 'P1' | 'P2' | 'P3' | 'P4' | 'P5';
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
   readonly chronicOptions = [
     { value: 'DIABETES', label: 'Diabetes' },
     { value: 'COPD', label: 'COPD' }
@@ -35,8 +36,14 @@ export class AppComponent {
 
   tabs: PatientTab[] = [this.createTab(this.demoModel())];
   activeTabId = this.tabs[0].id;
+  departmentLoad: DepartmentLoad | null = null;
+  departmentLoadError = '';
 
   constructor(private readonly triageApiService: TriageApiService) {}
+
+  ngOnInit(): void {
+    this.refreshDepartmentLoad();
+  }
 
   get activeTab(): PatientTab {
     return this.tabs.find((tab) => tab.id === this.activeTabId) ?? this.tabs[0];
@@ -138,7 +145,15 @@ export class AppComponent {
       return;
     }
 
+    const closingTab = this.tabs[index];
     this.tabs = this.tabs.filter((tab) => tab.id !== tabId);
+    if (closingTab.result?.priority === 'P1') {
+      this.triageApiService.dischargeCase(closingTab.id).subscribe({
+        next: (load) => {
+          this.departmentLoad = load;
+        }
+      });
+    }
     if (this.activeTabId === tabId) {
       const nextIndex = Math.min(index, this.tabs.length - 1);
       this.activeTabId = this.tabs[nextIndex].id;
@@ -162,7 +177,7 @@ export class AppComponent {
     tab.evaluatedAt = null;
     tab.clinicalReasoningCollapsed = true;
 
-    this.triageApiService.evaluate(tab.model)
+    this.triageApiService.evaluate(this.buildTriageRequest(tab))
       .pipe(finalize(() => {
         tab.loading = false;
       }))
@@ -170,6 +185,7 @@ export class AppComponent {
         next: (response) => {
           tab.result = response;
           tab.evaluatedAt = new Date();
+          this.refreshDepartmentLoad();
           this.recordTriagedVitals(tab, tab.evaluatedAt);
           this.runCepMonitoring(tab);
         },
@@ -221,14 +237,28 @@ export class AppComponent {
     return map.P3;
   }
 
-  wardLabel(ward: string | null | undefined): string {
+  wardLabel(ward: string | null | undefined, redirected = false): string {
     const labels: Record<string, string> = {
       JIL: 'Internal medicine (JIL)',
       PULMOLOGY: 'Pulmonology',
       INFECTOLOGY: 'Infectious diseases',
-      GENERAL_ER: 'General emergency'
+      GENERAL_ER: redirected
+        ? 'Secondary facility (General ER overflow)'
+        : 'General emergency'
     };
     return ward ? (labels[ward] ?? ward) : 'General emergency';
+  }
+
+  refreshDepartmentLoad(): void {
+    this.departmentLoadError = '';
+    this.triageApiService.getDepartmentLoad().subscribe({
+      next: (load) => {
+        this.departmentLoad = load;
+      },
+      error: () => {
+        this.departmentLoadError = 'Could not load department P1 count.';
+      }
+    });
   }
 
   formatEnum(value: string): string {
@@ -274,6 +304,13 @@ export class AppComponent {
     return this.model.symptoms
       .map((s) => this.optionLabel(this.symptomOptions, s))
       .join(', ');
+  }
+
+  private buildTriageRequest(tab: PatientTab): TriageRequest {
+    return {
+      ...tab.model,
+      caseId: tab.id
+    };
   }
 
   private runCepMonitoring(tab: PatientTab): void {
@@ -338,7 +375,7 @@ export class AppComponent {
     // Triggers: level-1 vitals → sepsis preliminary → P1 "Triage sepsis with diabetes".
     // Backward chaining: fever + tachycardia + hypotension → suspected sepsis.
     return {
-      fullName: 'Elena Markovic (P1 demo)',
+      fullName: 'John Smith',
       age: 68,
       temperature: 39.2,
       systolicBloodPressure: 88,

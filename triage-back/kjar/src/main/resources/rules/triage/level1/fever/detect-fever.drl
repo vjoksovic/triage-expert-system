@@ -1,4 +1,4 @@
-package rules.triage.level1
+package rules.triage.level1.fever
 
 import com.ftn.model.Patient;
 import com.ftn.model.Symptom;

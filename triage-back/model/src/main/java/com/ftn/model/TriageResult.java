@@ -10,6 +10,7 @@ public class TriageResult implements Serializable {
 
     private Priority priority;
     private Ward ward;
+    private Ward redirectedFromWard;
     private List<String> warnings = new ArrayList<>();
 
     public TriageResult() {
@@ -34,6 +35,14 @@ public class TriageResult implements Serializable {
 
     public void setWard(Ward ward) {
         this.ward = ward;
+    }
+
+    public Ward getRedirectedFromWard() {
+        return redirectedFromWard;
+    }
+
+    public void setRedirectedFromWard(Ward redirectedFromWard) {
+        this.redirectedFromWard = redirectedFromWard;
     }
 
     public List<String> getWarnings() {

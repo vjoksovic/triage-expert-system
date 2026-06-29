@@ -1,0 +1,24 @@
+package rules.triage.accumulate
+
+import com.ftn.model.DepartmentTriageCase
+import com.ftn.model.Patient
+import com.ftn.model.Priority
+import com.ftn.model.TriageResult
+import com.ftn.model.Ward
+
+rule "Redirect new P1 patient when department overloaded"
+    salience -50
+when
+    $patient : Patient()
+    $result : TriageResult(priority == Priority.P1, ward != Ward.GENERAL_ER)
+    Number($activeP1Count : intValue) from accumulate(
+        DepartmentTriageCase(priority == Priority.P1),
+        count(1))
+    eval($activeP1Count >= 5)
+then
+    $result.setRedirectedFromWard($result.getWard());
+    $result.setWard(Ward.GENERAL_ER);
+    $result.addWarning(
+        "Department overloaded (" + $activeP1Count + " P1 patients already admitted) — patient redirected to secondary facility (General ER overflow).");
+    update($result);
+end

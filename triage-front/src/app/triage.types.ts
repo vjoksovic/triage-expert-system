@@ -1,4 +1,5 @@
 export interface TriageRequest {
+  caseId?: string;
   fullName: string;
   age: number;
   temperature: number;
@@ -17,6 +18,25 @@ export interface TriageResponse {
   priority: string | null;
   ward: string | null;
   warnings: string[];
+  redirectedToSecondary?: boolean;
+  originalWard?: string | null;
+  departmentP1Count?: number;
+  departmentOverloadThreshold?: number;
+  departmentOverloaded?: boolean;
+}
+
+export interface DepartmentCase {
+  caseId: string;
+  patientName: string;
+  priority: string;
+  ward: string;
+}
+
+export interface DepartmentLoad {
+  p1Count: number;
+  overloadThreshold: number;
+  overloaded: boolean;
+  activeP1Cases: DepartmentCase[];
 }
 
 export interface VitalsReading {

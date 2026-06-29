@@ -10,6 +10,11 @@ public class TriageResponseDto {
     private String priority;
     private String ward;
     private List<String> warnings = new ArrayList<>();
+    private boolean redirectedToSecondary;
+    private String originalWard;
+    private int departmentP1Count;
+    private int departmentOverloadThreshold;
+    private boolean departmentOverloaded;
 
     public List<String> getActivatedRules() {
         return activatedRules;
@@ -57,5 +62,45 @@ public class TriageResponseDto {
 
     public void setWarnings(List<String> warnings) {
         this.warnings = warnings;
+    }
+
+    public boolean isRedirectedToSecondary() {
+        return redirectedToSecondary;
+    }
+
+    public void setRedirectedToSecondary(boolean redirectedToSecondary) {
+        this.redirectedToSecondary = redirectedToSecondary;
+    }
+
+    public String getOriginalWard() {
+        return originalWard;
+    }
+
+    public void setOriginalWard(String originalWard) {
+        this.originalWard = originalWard;
+    }
+
+    public int getDepartmentP1Count() {
+        return departmentP1Count;
+    }
+
+    public void setDepartmentP1Count(int departmentP1Count) {
+        this.departmentP1Count = departmentP1Count;
+    }
+
+    public int getDepartmentOverloadThreshold() {
+        return departmentOverloadThreshold;
+    }
+
+    public void setDepartmentOverloadThreshold(int departmentOverloadThreshold) {
+        this.departmentOverloadThreshold = departmentOverloadThreshold;
+    }
+
+    public boolean isDepartmentOverloaded() {
+        return departmentOverloaded;
+    }
+
+    public void setDepartmentOverloaded(boolean departmentOverloaded) {
+        this.departmentOverloaded = departmentOverloaded;
     }
 }

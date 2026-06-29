@@ -12,12 +12,15 @@ import org.kie.api.runtime.KieSession;
 import org.springframework.stereotype.Service;
 
 import com.ftn.model.ChronicCondition;
+import com.ftn.model.DepartmentTriageCase;
 import com.ftn.model.Diagnosis;
 import com.ftn.model.Patient;
+import com.ftn.model.Priority;
 import com.ftn.model.Symptom;
 import com.ftn.model.SymptomType;
 import com.ftn.model.TriageResult;
 import com.ftn.model.Vitals;
+import com.ftn.model.Ward;
 import com.ftn.service.dto.TriageRequestDto;
 import com.ftn.service.dto.TriageResponseDto;
 import com.ftn.service.engine.RuleInsightFormatter;
@@ -25,16 +28,19 @@ import com.ftn.service.engine.RuleTraceAgendaEventListener;
 
 @Service
 public class TriageEngineService {
-    private final KieContainer kieContainer;
+    private static final String OVERLOAD_RULE = "Redirect new P1 patient when department overloaded";
 
-    public TriageEngineService(KieContainer kieContainer) {
+    private final KieContainer kieContainer;
+    private final DepartmentLoadService departmentLoadService;
+
+    public TriageEngineService(KieContainer kieContainer, DepartmentLoadService departmentLoadService) {
         this.kieContainer = kieContainer;
+        this.departmentLoadService = departmentLoadService;
     }
 
     public TriageResponseDto evaluate(TriageRequestDto request) {
-        KieSession session = null;
+        KieSession session = kieContainer.newKieSession("triageKSession");
         try {
-            session = kieContainer.newKieSession("triageKSession");
             RuleTraceAgendaEventListener listener = new RuleTraceAgendaEventListener();
             session.addEventListener(listener);
 
@@ -51,6 +57,13 @@ public class TriageEngineService {
                     request.getPulse(),
                     request.getSpo2(),
                     LocalDateTime.now());
+
+            departmentLoadService.getActiveP1CasesExcluding(request.getCaseId(), request.getFullName())
+                    .forEach(caseEntry -> session.insert(new DepartmentTriageCase(
+                            caseEntry.getCaseId(),
+                            caseEntry.getPatientName(),
+                            caseEntry.getPriority(),
+                            caseEntry.getWard())));
 
             session.insert(patient);
             session.insert(vitals);
@@ -81,16 +94,29 @@ public class TriageEngineService {
                     .map(TriageResult.class::cast)
                     .findFirst()
                     .ifPresent(triage -> {
+                        boolean redirected = listener.getFiredRules().contains(OVERLOAD_RULE);
+                        Ward finalWard = triage.getWard();
                         response.setPriority(triage.getPriority().name());
-                        response.setWard(triage.getWard().name());
+                        response.setWard(finalWard.name());
                         response.setWarnings(triage.getWarnings());
+                        response.setRedirectedToSecondary(redirected);
+                        if (redirected && triage.getRedirectedFromWard() != null) {
+                            response.setOriginalWard(triage.getRedirectedFromWard().name());
+                        }
+                        departmentLoadService.registerOrUpdate(
+                                request.getCaseId(),
+                                request.getFullName(),
+                                triage.getPriority(),
+                                finalWard);
                     });
+
+            response.setDepartmentP1Count(departmentLoadService.getP1Count());
+            response.setDepartmentOverloadThreshold(DepartmentLoadService.OVERLOAD_THRESHOLD);
+            response.setDepartmentOverloaded(departmentLoadService.isOverloaded());
 
             return response;
         } finally {
-            if (session != null) {
-                session.dispose();
-            }
+            session.dispose();
         }
     }
 

@@ -55,6 +55,8 @@ public final class RuleInsightFormatter {
             case "Acute Respiratory Crash Prediction - Failed Compensation":
             case "Acute Respiratory Crash Prediction":
                 return "Acute respiratory crash risk: SpO2 fell more than 5% within 10 minutes without adequate pulse compensation, or with concurrent pulse collapse.";
+            case "Redirect new P1 patient when department overloaded":
+                return "Department overload: five or more P1 patients are already admitted — this patient was redirected to the secondary facility.";
             default:
                 return "Rule satisfied: " + ruleName;
         }

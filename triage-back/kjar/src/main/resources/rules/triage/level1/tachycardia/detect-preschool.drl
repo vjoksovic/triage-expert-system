@@ -1,4 +1,4 @@
-package rules.triage.level1
+package rules.triage.level1.tachycardia
 
 import com.ftn.model.Patient;
 import com.ftn.model.Symptom;

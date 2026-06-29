@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class TriageRequestDto {
+    private String caseId;
     private String fullName;
     private int age;
     private Integer ageInMonths;
@@ -15,6 +16,14 @@ public class TriageRequestDto {
     private int spo2;
     private List<String> chronicConditions = new ArrayList<>();
     private List<String> symptoms = new ArrayList<>();
+
+    public String getCaseId() {
+        return caseId;
+    }
+
+    public void setCaseId(String caseId) {
+        this.caseId = caseId;
+    }
 
     public String getFullName() {
         return fullName;
