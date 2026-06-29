@@ -1,0 +1,28 @@
+package rules.triage.backward
+
+import com.ftn.model.SepsisSuspectedAnswer
+
+rule "Answer isSepsaSuspected query"
+    agenda-group "backward"
+when
+    String( this == "isSepsaSuspected" )
+    prove( "isSepsaSuspected"; )
+    not SepsisSuspectedAnswer()
+then
+    insert(new SepsisSuspectedAnswer(
+        true,
+        "Patient profile meets criteria for suspected sepsis — infection risk with hemodynamic instability."));
+end
+
+rule "Answer isSepsaSuspected query - negative"
+    agenda-group "backward"
+    salience -10
+when
+    String( this == "isSepsaSuspected" )
+    not prove( "isSepsaSuspected"; )
+    not SepsisSuspectedAnswer()
+then
+    insert(new SepsisSuspectedAnswer(
+        false,
+        "Patient profile does not meet criteria for suspected sepsis."));
+end

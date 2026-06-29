@@ -75,7 +75,10 @@ public class BackwardChainingService {
             session.insert(vitals);
             mapSymptoms(request.getSymptoms()).forEach(session::insert);
 
-            session.fireAllRules(match -> match.getRule().getName().startsWith("Classify"));
+            session.fireAllRules(match -> {
+                String ruleName = match.getRule().getName();
+                return ruleName.startsWith("Classify") || ruleName.startsWith("Detect");
+            });
 
             session.insert(SEPSIS_QUERY);
             session.getAgenda().getAgendaGroup("backward").setFocus();

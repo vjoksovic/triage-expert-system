@@ -1,0 +1,15 @@
+package rules.triage.backward
+
+import com.ftn.model.Symptom
+import com.ftn.model.SymptomType
+
+query prove( String goalName )
+    (
+        GoalSymptom( goalName, $symptomType; ) and
+        exists Symptom( type == $symptomType )
+    )
+    or
+    ( OrGoal( goalName, $child; ) and prove( $child; ) )
+    or
+    ( AndGoal( goalName, $left, $right; ) and prove( $left; ) and prove( $right; ) )
+end

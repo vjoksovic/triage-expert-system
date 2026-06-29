@@ -1,0 +1,19 @@
+package rules.triage.backward
+
+import com.ftn.model.SymptomType
+
+declare GoalSymptom
+    goal : String
+    symptomType : SymptomType
+end
+
+declare OrGoal
+    parent : String
+    child : String
+end
+
+declare AndGoal
+    parent : String
+    left : String
+    right : String
+end

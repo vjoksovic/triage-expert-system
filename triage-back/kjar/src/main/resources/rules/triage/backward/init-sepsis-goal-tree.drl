@@ -1,0 +1,20 @@
+package rules.triage.backward
+
+import com.ftn.model.SymptomType
+
+rule "Init sepsis goal tree"
+    agenda-group "backward"
+    salience 100
+when
+    String( this == "isSepsaSuspected" )
+    not AndGoal()
+then
+    insert(new GoalSymptom("hasFever", SymptomType.FEVER));
+    insert(new GoalSymptom("hasConfusion", SymptomType.CONFUSION));
+    insert(new GoalSymptom("hasTachycardia", SymptomType.TACHYCARDIA));
+    insert(new GoalSymptom("hasHypotension", SymptomType.HYPOTENSION));
+    insert(new OrGoal("hasInfectionRisk", "hasFever"));
+    insert(new OrGoal("hasInfectionRisk", "hasConfusion"));
+    insert(new AndGoal("hasHemodynamicInstability", "hasTachycardia", "hasHypotension"));
+    insert(new AndGoal("isSepsaSuspected", "hasInfectionRisk", "hasHemodynamicInstability"));
+end
